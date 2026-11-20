@@ -58,6 +58,7 @@ pre.out{margin:0;background:var(--code);color:var(--codetx);border-radius:10px;p
 .w{display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--bd)}
 .w div{flex:1}
 .w small{display:block;color:var(--mu)}
+.mi{width:100%;padding:10px;margin:6px 0;border:1px solid var(--bd);border-radius:10px;background:var(--bg);color:var(--tx);font:inherit;box-sizing:border-box}
 .lnk{display:inline-block;text-decoration:none;color:var(--tx);border:1px solid var(--bd);border-radius:10px;padding:10px 14px;margin:4px 4px 0 0;background:var(--sf)}
 </style>
 </head>
@@ -147,6 +148,14 @@ button { padding: 10px 20px; border-radius: 8px; }</textarea>
     <div class="row"><button class="run" data-src="https://www.youtube-nocookie.com/embed/videoseries?list=UU_aEa8K-EOJ3D6gOs7HcyNg">▶ Phát nhạc NCS</button><a class="lnk" href="https://www.youtube.com/channel/UC_aEa8K-EOJ3D6gOs7HcyNg" target="_blank" rel="noopener">Mở kênh NCS</a></div><div class="pl"></div></div>
   <div class="card"><b>TheFatRat</b>
     <div class="row"><button class="run" data-src="https://www.youtube-nocookie.com/embed/videoseries?list=UUa_UMppcMsHIzb5LDx1u9zQ">▶ Phát nhạc TheFatRat</button><button class="ghost" data-src="https://www.youtube-nocookie.com/embed/hzHkh1ipbVk">▶ Unity 10th Mixtape</button><a class="lnk" href="https://www.youtube.com/channel/UCa_UMppcMsHIzb5LDx1u9zQ" target="_blank" rel="noopener">Mở kênh TheFatRat</a></div><div class="pl"></div></div>
+  <div class="card"><b>Thư viện nhạc của bạn</b>
+    <p class="note">Đã có sẵn 8 bài NCS và TheFatRat bên dưới. Muốn thêm, dán link YouTube rồi bấm Thêm (lưu trên máy bạn). Gõ tên để tìm, bấm ▶ để nghe ngay trong trang.</p>
+    <textarea id="mlink" class="mi" style="min-height:70px" placeholder="Dán link YouTube ở đây (mỗi link một dòng)..." spellcheck="false"></textarea>
+    <div class="row"><button class="run" id="madd">Thêm vào thư viện</button></div>
+    <p class="note" id="mst" aria-live="polite"></p>
+    <div id="mplay"></div>
+    <input id="msearch" class="mi" placeholder="🔍 Tìm trong thư viện..." autocomplete="off">
+    <div id="mlist"></div></div>
   <div class="card"><b>Tìm bài cụ thể trên YouTube</b><div id="songs"></div></div>
 </section>
 <section id="pyp" hidden>
@@ -537,6 +546,87 @@ document.querySelectorAll("#mus [data-src]").forEach(function(b){
   var a=document.createElement("a");a.className="lnk";a.target="_blank";a.rel="noopener";a.textContent="🎵 "+n.replace(" NCS","");
   a.href="https://www.youtube.com/results?search_query="+encodeURIComponent(n);$("songs").appendChild(a);
 });
+
+var SEED=[
+{id:"K4DyBUG242c",grp:"NCS",title:"Cartoon - On & On (feat. Daniel Levi)",by:""},
+{id:"3nQNiWdeH2Q",grp:"NCS",title:"Janji - Heroes Tonight (feat. Johnning)",by:""},
+{id:"J2X5mJ3HDYE",grp:"NCS",title:"DEAF KEV - Invincible",by:""},
+{id:"TW9d8vYrVFQ",grp:"NCS",title:"Elektronomia - Sky High",by:""},
+{id:"n8X9_MgEdCg",grp:"TheFatRat",title:"TheFatRat - Unity",by:""},
+{id:"cMg8KaMdDYo",grp:"TheFatRat",title:"TheFatRat - bài 2",by:""},
+{id:"gHgv19ip-0c",grp:"TheFatRat",title:"TheFatRat - bài 3",by:""},
+{id:"2Ax_EIb1zks",grp:"TheFatRat",title:"TheFatRat - bài 4",by:""}];
+var mlib=[];try{mlib=JSON.parse(localStorage.getItem("music-lib")||"[]")}catch(e){}
+function msave(){try{localStorage.setItem("music-lib",JSON.stringify(mlib))}catch(e){}}
+function ytParse(u){
+  var id=null,list=null,m,x;
+  try{
+    x=new URL(u.trim());list=x.searchParams.get("list");
+    if(x.hostname==="youtu.be")id=x.pathname.slice(1);
+    else if(/(^|\.)youtube(-nocookie)?\.com$/.test(x.hostname)){
+      id=x.searchParams.get("v");
+      if(!id){m=x.pathname.match(/^\/(embed|shorts|live)\/([\w-]{11})/);if(m)id=m[2]}
+    }
+  }catch(e){return null}
+  if(id&&!/^[\w-]{11}$/.test(id))id=null;
+  if(list&&!/^[\w-]+$/.test(list))list=null;
+  return (id||list)?{id:id,list:list}:null;
+}
+function mplay(it){
+  var u=it.id?"https://www.youtube-nocookie.com/embed/"+it.id+"?autoplay=1"+(it.list?"&list="+it.list:""):"https://www.youtube-nocookie.com/embed/videoseries?autoplay=1&list="+it.list;
+  var box=$("mplay");box.innerHTML="";
+  var t=document.createElement("p");t.className="note";t.textContent="Đang phát: "+it.title;
+  var f=document.createElement("iframe");f.src=u;f.title=it.title;f.allow="autoplay; encrypted-media; picture-in-picture";f.allowFullscreen=true;
+  box.appendChild(t);box.appendChild(f);box.scrollIntoView({behavior:"smooth",block:"nearest"});
+}
+function mrender(){
+  var q=$("msearch").value.trim().toLowerCase(),box=$("mlist"),n=0;box.innerHTML="";
+  var all=SEED.map(function(x){return {it:x,seed:true}}).concat(mlib.map(function(x,i){return {it:x,idx:i}}));
+  all.forEach(function(o){
+    var it=o.it;
+    if(q&&(it.title+" "+(it.by||"")+" "+(it.grp||"")).toLowerCase().indexOf(q)<0)return;
+    n++;
+    var r=document.createElement("div");r.className="w";
+    var d=document.createElement("div"),b=document.createElement("b"),sm=document.createElement("small");
+    b.textContent=it.title;sm.textContent=(it.grp?it.grp+" · ":"")+(it.list&&!it.id?"Playlist · ":"")+(it.by||"");d.appendChild(b);d.appendChild(sm);
+    var pb=document.createElement("button");pb.className="run";pb.textContent="▶";pb.setAttribute("aria-label","Phát "+it.title);pb.onclick=function(){mplay(it)};
+    r.appendChild(d);r.appendChild(pb);
+    if(!o.seed){var xb=document.createElement("button");xb.className="ghost";xb.textContent="✕";xb.setAttribute("aria-label","Xóa "+it.title);xb.onclick=function(){mlib.splice(o.idx,1);msave();mrender()};r.appendChild(xb)}
+    box.appendChild(r);
+  });
+  if(!n){var e=document.createElement("p");e.className="note";e.textContent="Không có bài nào khớp.";box.appendChild(e)}
+}
+function mTitle(it){
+  var url=it.id?"https://www.youtube.com/watch?v="+it.id:"https://www.youtube.com/playlist?list="+it.list;
+  return fetch("https://www.youtube.com/oembed?format=json&url="+encodeURIComponent(url))
+    .then(function(r){return r.json()})
+    .then(function(j){it.title=j.title||"Bài hát";it.by=j.author_name||""})
+    .catch(function(){it.title="Bài "+(mlib.length+1);it.by=""});
+}
+$("madd").onclick=function(){
+  var urls=$("mlink").value.match(/https?:\/\/[^\s]+/g)||[];
+  var items=urls.map(ytParse).filter(Boolean).filter(function(it,i,a){
+    var k=(it.id||"")+"|"+(it.list||"");
+    if(a.findIndex(function(o){return (o.id||"")+"|"+(o.list||"")===k})!==i)return false;
+    return !mlib.concat(SEED).some(function(o){return (o.id||"")+"|"+(o.list||"")===k});
+  });
+  if(!urls.length||!items.length){$("mst").textContent=urls.length?"Không có link mới hợp lệ (có thể bài đã có trong thư viện).":"Hãy dán link YouTube của bài hát.";return}
+  $("mst").textContent="Đang lấy tên bài...";
+  items.reduce(function(p,it){return p.then(function(){return mTitle(it)}).then(function(){mlib.push(it)})},Promise.resolve()).then(function(){
+    msave();$("mlink").value="";$("mst").textContent="Đã thêm "+items.length+" bài.";mrender();
+  });
+};
+$("msearch").addEventListener("input",mrender);
+var stc={};try{stc=JSON.parse(localStorage.getItem("music-seed")||"{}")}catch(e){}
+SEED.forEach(function(it){
+  if(stc[it.id]){it.title=stc[it.id].t;it.by=stc[it.id].b;return}
+  fetch("https://www.youtube.com/oembed?format=json&url="+encodeURIComponent("https://www.youtube.com/watch?v="+it.id)).then(function(r){return r.json()}).then(function(j){
+    if(!j.title)return;it.title=j.title;it.by=j.author_name||"";stc[it.id]={t:it.title,b:it.by};
+    try{localStorage.setItem("music-seed",JSON.stringify(stc))}catch(e){}
+    mrender();
+  }).catch(function(){});
+});
+mrender();
 
 render();
 </script>
