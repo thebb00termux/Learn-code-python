@@ -36,6 +36,24 @@ iframe{width:100%;height:220px;border:1px solid var(--bd);border-radius:10px;bac
 pre.out{margin:0;background:var(--code);color:var(--codetx);border-radius:10px;padding:12px;min-height:60px;overflow-x:auto;font:14px/1.5 ui-monospace,Menlo,Consolas,monospace;white-space:pre-wrap}
 .label{font-size:.85rem;color:var(--mu);margin:10px 0 4px}
 .note{font-size:.9rem;color:var(--mu)}
+[hidden]{display:none!important}
+#chat{position:fixed;inset:0;z-index:50;background:rgba(0,0,0,.55);display:flex;align-items:flex-end;justify-content:center}
+.cbox{background:var(--sf);color:var(--tx);width:100%;max-width:560px;height:88vh;height:88dvh;border-radius:16px 16px 0 0;display:flex;flex-direction:column;padding-bottom:env(safe-area-inset-bottom,0px)}
+.chead{display:flex;align-items:center;gap:8px;padding:10px 12px;border-bottom:1px solid var(--bd)}
+.chead .note{flex:1;margin:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.cbody{padding:12px;overflow-y:auto;flex:1;min-height:0}
+#cErr{margin:0;padding:4px 12px;color:crimson}
+.cbox input,.cbox textarea{width:100%;padding:10px;margin:4px 0;border:1px solid var(--bd);border-radius:10px;background:var(--bg);color:var(--tx);font:inherit;box-sizing:border-box;min-height:0}
+#cRules{min-height:170px;font:12px/1.4 ui-monospace,Menlo,Consolas,monospace}
+#cRoom{display:flex;flex-direction:column;flex:1;min-height:0}
+#cList{flex:1;overflow-y:auto;padding:12px;display:flex;flex-direction:column;gap:8px}
+.msg{max-width:80%;background:var(--bg);border:1px solid var(--bd);border-radius:12px;padding:6px 10px;align-self:flex-start}
+.msg b{display:block;font-size:.75rem;color:var(--mu)}
+.msg span{overflow-wrap:anywhere}
+.msg.me{align-self:flex-end;background:var(--ac);color:var(--acx);border-color:var(--ac)}
+.msg.me b{color:inherit;opacity:.8}
+.cbar{display:flex;gap:8px;padding:10px 12px;border-top:1px solid var(--bd)}
+.cbar input{flex:1;width:auto;margin:0}
 </style>
 </head>
 <body>
@@ -56,6 +74,7 @@ pre.out{margin:0;background:var(--code);color:var(--codetx);border-radius:10px;p
   <button class="run" id="run">Chạy code</button>
   <button class="ghost" id="reset">Về code mẫu</button>
   <button class="ghost" id="sol" hidden>Xem đáp án</button>
+  <button class="ghost chatopen">💬 Chat</button>
 </div>
 <div id="result"></div>
 </div>
@@ -73,7 +92,7 @@ button { padding: 10px 20px; border-radius: 8px; }</textarea>
   document.getElementById("tieude").textContent = "Bạn vừa bấm nút!";
   console.log("Đã bấm");
 };</textarea>
-  <div class="row"><button class="run" id="wrun">Chạy trang web</button></div>
+  <div class="row"><button class="run" id="wrun">Chạy trang web</button><button class="ghost chatopen">💬 Chat</button></div>
   <div class="label">Kết quả</div>
   <iframe id="wf" sandbox="allow-scripts" title="Kết quả trang web"></iframe>
   <div class="label">Console</div>
@@ -105,7 +124,7 @@ button { padding: 10px 20px; border-radius: 8px; }</textarea>
   &lt;/script&gt;
 &lt;/body&gt;
 &lt;/html&gt;</textarea>
-  <div class="row"><button class="run" id="arun">Chạy trang web</button></div>
+  <div class="row"><button class="run" id="arun">Chạy trang web</button><button class="ghost chatopen">💬 Chat</button></div>
   <div class="label">Kết quả</div>
   <iframe id="af" sandbox="allow-scripts" title="Kết quả code gộp" style="height:260px"></iframe>
   <div class="label">Console</div>
@@ -120,13 +139,62 @@ for i in range(1, 4):
 
 tong = sum([1, 2, 3, 4, 5])
 print("Tổng =", tong)</textarea>
-  <div class="row"><button class="run" id="prun">Chạy Python</button></div>
+  <div class="row"><button class="run" id="prun">Chạy Python</button><button class="ghost chatopen">💬 Chat</button></div>
   <p class="note" id="ps" aria-live="polite"></p>
   <div class="label">Kết quả</div>
   <pre class="out" id="po"></pre>
 </section>
 </main>
+<div id="chat" hidden role="dialog" aria-modal="true" aria-label="Chat">
+ <div class="cbox">
+  <div class="chead"><b>💬 Chat</b><span class="note" id="cWho"></span><button class="ghost" id="cOut" hidden>Đăng xuất</button><button class="ghost" id="cClose" aria-label="Đóng chat">✕</button></div>
+  <p id="cErr" role="alert"></p>
+  <div id="cSetup" class="cbody" hidden>
+   <p>Chat nhiều người cần một máy chủ. Bạn dùng <b>Firebase</b> (miễn phí):</p>
+   <ol>
+    <li>Tạo project tại console.firebase.google.com</li>
+    <li>Build → Authentication → bật <b>Email/Password</b>. Rồi Settings → Authorized domains → thêm tên miền GitHub Pages của bạn (ví dụ <b>thebb00termux.github.io</b>).</li>
+    <li>Build → Firestore Database → Create database.</li>
+    <li>Firestore → tab Rules → dán Rules bên dưới → Publish.</li>
+    <li>Project settings → Your apps → Web → chép <b>firebaseConfig</b> vào biến <b>FIREBASE_CONFIG</b> ở đầu phần &lt;script&gt; trong file này, rồi upload lại.</li>
+   </ol>
+   <label class="label" for="cRules">Rules cho Firestore</label>
+   <textarea id="cRules" readonly>rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    match /messages/{id} {
+      allow read: if request.auth != null;
+      allow create: if request.auth != null
+        && request.resource.data.keys().hasOnly(['uid','name','text','ts'])
+        && request.resource.data.uid == request.auth.uid
+        && request.resource.data.name is string
+        && request.resource.data.name.size() <= 30
+        && request.resource.data.text is string
+        && request.resource.data.text.size() > 0
+        && request.resource.data.text.size() <= 500
+        && request.resource.data.ts == request.time;
+      allow update, delete: if false;
+    }
+  }
+}</textarea>
+   <div class="row"><button class="ghost" id="cCopy">Chép rules</button><button class="run" id="cDemo">Dùng thử trên máy này</button></div>
+   <p class="note">Chế độ thử chỉ lưu tin nhắn trên máy bạn, chưa chat được với người khác.</p>
+  </div>
+  <div id="cAuth" class="cbody" hidden>
+   <input id="cName" placeholder="Tên hiển thị (khi đăng ký)" maxlength="30" autocomplete="nickname">
+   <input id="cEmail" type="email" placeholder="Email" autocomplete="email">
+   <input id="cPass" type="password" placeholder="Mật khẩu (từ 6 ký tự)" autocomplete="current-password">
+   <div class="row"><button class="run" id="cLogin">Đăng nhập</button><button class="ghost" id="cSignup">Đăng ký</button></div>
+  </div>
+  <div id="cRoom" hidden>
+   <div id="cList" aria-live="polite"></div>
+   <div class="cbar"><input id="cMsg" maxlength="500" placeholder="Nhập tin nhắn..." autocomplete="off"><button class="run" id="cSend">Gửi</button></div>
+  </div>
+ </div>
+</div>
 <script>
+/* ===== CẤU HÌNH CHAT: dán firebaseConfig của bạn vào đây ===== */
+var FIREBASE_CONFIG={apiKey:"AIzaSyBMsTdcbJqxALV_iNsR_1Qwipt2fOIwQMo",authDomain:"learn-code-python.firebaseapp.com",projectId:"learn-code-python",storageBucket:"learn-code-python.firebasestorage.app",messagingSenderId:"197145139414",appId:"1:197145139414:web:9699730d5e165c88ed9177"};
 var L={
 html:{name:"HTML",lessons:[
 {t:"Tiêu đề và đoạn văn",e:"HTML là khung xương của trang web. Mỗi phần tử gồm thẻ mở và thẻ đóng, ví dụ <b>&lt;h1&gt;...&lt;/h1&gt;</b> cho tiêu đề lớn và <b>&lt;p&gt;...&lt;/p&gt;</b> cho đoạn văn.",task:"Thử thách: đổi nội dung tiêu đề thành tên bạn và thêm một đoạn <p> nữa.",c:"<h1>Xin chào!</h1>\n<p>Đây là trang web đầu tiên của mình.</p>"},
@@ -135,7 +203,8 @@ html:{name:"HTML",lessons:[
 {t:"Bảng dữ liệu",e:"<b>&lt;table&gt;</b> tạo bảng, <b>&lt;tr&gt;</b> là một hàng, <b>&lt;th&gt;</b> là ô tiêu đề, <b>&lt;td&gt;</b> là ô dữ liệu.",task:"Thử thách: thêm một hàng mới cho bạn của bạn.",c:"<table border=\"1\" cellpadding=\"8\">\n  <tr><th>Tên</th><th>Điểm</th></tr>\n  <tr><td>An</td><td>9</td></tr>\n  <tr><td>Bình</td><td>8</td></tr>\n</table>"},
 {t:"Chọn, tick và nhiều dòng",e:"<b>&lt;select&gt;</b> tạo menu thả xuống, <b>type=\"checkbox\"</b> là ô tick, <b>&lt;textarea&gt;</b> là ô gõ nhiều dòng.",task:"Thử thách: thêm một lựa chọn \"Python\" vào menu.",c:"<select>\n  <option>HTML</option>\n  <option>CSS</option>\n  <option>JavaScript</option>\n</select>\n<br><br>\n<label><input type=\"checkbox\"> Mình đã hiểu bài</label>\n<br><br>\n<textarea rows=\"3\" placeholder=\"Ghi chú...\"></textarea>"},
 {t:"Nút bấm (button)",e:"<b>&lt;button&gt;</b> tạo nút. Thuộc tính <b>onclick</b> chứa lệnh JavaScript chạy khi bấm, còn <b>this</b> là chính cái nút đang bấm.",task:"Thử thách: đổi chữ \"Đã bấm!\" thành lời của bạn.",c:"<button onclick=\"this.textContent='Đã bấm!'\">Bấm vào mình</button>\n<button onclick=\"document.body.style.background='#fef3c7'\">Đổi màu nền</button>"},
-{t:"Ảnh và nhúng tài nguyên",e:"<b>&lt;img src&gt;</b> nhúng ảnh. Tương tự, <b>&lt;link href&gt;</b> nhúng file CSS và <b>&lt;script src&gt;</b> nhúng file JavaScript. Ảnh mẫu dưới đây được nhúng trực tiếp nên chạy không cần mạng.",task:"Thử thách: đổi width thành 200 và đổi nội dung alt.",c:"<img width=\"120\" alt=\"hình tròn xanh\"\n  src=\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ccircle cx='50' cy='50' r='45' fill='teal'/%3E%3C/svg%3E\">"}]},
+{t:"Ảnh và nhúng tài nguyên",e:"<b>&lt;img src&gt;</b> nhúng ảnh. Tương tự, <b>&lt;link href&gt;</b> nhúng file CSS và <b>&lt;script src&gt;</b> nhúng file JavaScript. Ảnh mẫu dưới đây được nhúng trực tiếp nên chạy không cần mạng.",task:"Thử thách: đổi width thành 200 và đổi nội dung alt.",c:"<img width=\"120\" alt=\"hình tròn xanh\"\n  src=\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ccircle cx='50' cy='50' r='45' fill='teal'/%3E%3C/svg%3E\">"},
+{t:"Form đăng nhập / đăng ký",e:"Form này kiểm tra dữ liệu ngay trên trình duyệt và có link chuyển giữa Đăng nhập và Đăng ký. Muốn lưu tài khoản thật thì cần máy chủ (xem nút Chat, dùng Firebase).",task:"Thử thách: nhập email không có @ rồi bấm nút, sau đó thêm điều kiện mật khẩu phải có ít nhất 8 ký tự.",c:"<style>\n  .f { max-width: 260px; margin: auto; font-family: sans-serif; }\n  .f input { width: 100%; padding: 8px; margin: 4px 0; box-sizing: border-box; }\n  .f button { width: 100%; padding: 10px; margin-top: 6px; }\n  #tb { color: crimson; min-height: 1.2em; }\n</style>\n<div class='f'>\n  <h3 id='tt'>Đăng nhập</h3>\n  <input id='em' type='email' placeholder='Email'>\n  <input id='mk' type='password' placeholder='Mật khẩu'>\n  <button id='ok'>Đăng nhập</button>\n  <p id='tb'></p>\n  <a href='#' id='chuyen'>Chưa có tài khoản? Đăng ký</a>\n</div>\n<script>\n  var dk = false;\n  var $ = function(i) { return document.getElementById(i); };\n  $('chuyen').onclick = function(e) {\n    e.preventDefault();\n    dk = !dk;\n    $('tt').textContent = $('ok').textContent = dk ? 'Đăng ký' : 'Đăng nhập';\n    this.textContent = dk ? 'Đã có tài khoản? Đăng nhập' : 'Chưa có tài khoản? Đăng ký';\n  };\n  $('ok').onclick = function() {\n    var tb = $('tb');\n    if (!$('em').value.includes('@')) { tb.textContent = 'Email chưa hợp lệ'; return; }\n    if ($('mk').value.length < 6) { tb.textContent = 'Mật khẩu cần ít nhất 6 ký tự'; return; }\n    tb.style.color = 'green';\n    tb.textContent = (dk ? 'Đăng ký' : 'Đăng nhập') + ' thành công (demo)';\n  };\n<\/script>"}]},
 css:{name:"CSS",lessons:[
 {t:"Màu sắc và cỡ chữ",e:"CSS là lớp trang điểm cho HTML. Cú pháp: <b>bộ-chọn { thuộc-tính: giá-trị; }</b>. Ví dụ đổi màu và cỡ chữ.",task:"Thử thách: đổi màu h1 thành tomato và cỡ chữ thành 48px.",c:"<style>\n  h1 { color: teal; font-size: 32px; }\n  p { color: gray; }\n</style>\n<h1>Chào CSS</h1>\n<p>Chữ này màu xám.</p>"},
 {t:"Hộp (box model)",e:"Mọi phần tử là một cái hộp: <b>padding</b> là đệm bên trong, <b>border</b> là viền, <b>margin</b> là khoảng cách bên ngoài.",task:"Thử thách: tăng padding lên 40px và bo góc 30px.",c:"<style>\n  .hop {\n    background: #fde68a;\n    padding: 20px;\n    border: 3px solid #b45309;\n    border-radius: 12px;\n    margin: 10px;\n  }\n</style>\n<div class=\"hop\">Mình là một chiếc hộp</div>"},
@@ -151,15 +220,25 @@ js:{name:"JavaScript",lessons:[
 {t:"Đối tượng (object)",e:"<b>Object</b> gom nhiều thông tin liên quan vào một biến, mỗi thông tin có tên riêng (key) và giá trị.",task:"Thử thách: thêm thuộc tính quequan rồi in ra.",c:"const hocSinh = {\n  ten: \"Lan\",\n  tuoi: 16,\n  monGioi: [\"Toán\", \"Tin\"]\n};\nconsole.log(hocSinh.ten + \" \" + hocSinh.tuoi + \" tuổi\");\nconsole.log(\"Giỏi môn:\", hocSinh.monGioi.join(\", \"));"},
 {t:"Nút bấm và DOM",e:"<b>document.getElementById</b> lấy phần tử trên trang, <b>addEventListener</b> lắng nghe sự kiện bấm. Khung kết quả có sẵn một thẻ id <b>app</b> để bạn vẽ vào.",task:"Thử thách: cho mỗi lần bấm tăng thêm 2.",c:"const app = document.getElementById(\"app\");\nlet dem = 0;\nconst nut = document.createElement(\"button\");\nnut.textContent = \"Bấm: 0\";\nnut.addEventListener(\"click\", function() {\n  dem++;\n  nut.textContent = \"Bấm: \" + dem;\n});\napp.appendChild(nut);"},
 {t:"Thời gian: đồng hồ",e:"<b>new Date()</b> lấy thời gian hiện tại. <b>setInterval(hàm, ms)</b> chạy hàm lặp lại sau mỗi khoảng mili giây (1000 = 1 giây).",task:"Thử thách: hiện thêm ngày bằng toLocaleDateString(\"vi-VN\").",c:"const app = document.getElementById(\"app\");\nfunction capNhat() {\n  app.textContent = new Date().toLocaleTimeString(\"vi-VN\");\n}\ncapNhat();\nsetInterval(capNhat, 1000);"},
-{t:"Hẹn giờ setTimeout",e:"<b>setTimeout(hàm, ms)</b> chạy hàm đúng một lần sau khi chờ. Dòng kết quả sẽ hiện dần ra.",task:"Thử thách: đổi 2000 thành 500 rồi chạy lại.",c:"console.log(\"Bắt đầu\");\nsetTimeout(function() {\n  console.log(\"Sau 2 giây mới hiện dòng này\");\n}, 2000);\nconsole.log(\"Dòng này hiện trước\");"}]},
+{t:"Hẹn giờ setTimeout",e:"<b>setTimeout(hàm, ms)</b> chạy hàm đúng một lần sau khi chờ. Dòng kết quả sẽ hiện dần ra.",task:"Thử thách: đổi 2000 thành 500 rồi chạy lại.",c:"console.log(\"Bắt đầu\");\nsetTimeout(function() {\n  console.log(\"Sau 2 giây mới hiện dòng này\");\n}, 2000);\nconsole.log(\"Dòng này hiện trước\");"},
+{t:"Chuỗi (string)",e:"<b>Chuỗi</b> là đoạn chữ trong dấu nháy. Các hàm hay dùng: <b>length</b> (độ dài), <b>toUpperCase</b>, <b>slice</b> (cắt), <b>includes</b> (có chứa không), <b>split</b> (tách), <b>replace</b> (thay). Dấu backtick kèm <b>${...}</b> chèn biến vào chuỗi.",task:"Thử thách: thêm dòng in ra 3 ký tự cuối của chuỗi bằng slice(-3).",c:"const ten = \"Lập Trình\";\nconsole.log(ten.length);\nconsole.log(ten.toUpperCase());\nconsole.log(ten.slice(0, 3));\nconsole.log(ten.includes(\"Trình\"));\nconsole.log(ten.split(\" \"));\nconsole.log(ten.replace(\"Lập\", \"Code\"));\nconsole.log(`Xin chào ${ten}!`);"},
+{t:"Chat đơn giản (giả lập)",e:"Mẫu chat chạy trên trình duyệt: tạo ô tin nhắn, bấm Gửi thì thêm dòng mới và bot trả lời sau 0,6 giây. Chat thật nhiều người cần máy chủ, hãy bấm nút Chat.",task:"Thử thách: cho bot trả lời \"Chào bạn!\" khi bạn gõ \"xin chào\".",c:"const app = document.getElementById('app');\napp.innerHTML = '<div id=\"kh\" style=\"border:1px solid #888;height:90px;overflow:auto;padding:6px;margin-bottom:6px\"></div><input id=\"o1\" placeholder=\"Nhập tin nhắn\"> <button id=\"g\">Gửi</button>';\nconst kh = document.getElementById('kh');\nfunction them(ai, nd) {\n  const p = document.createElement('div');\n  p.textContent = ai + ': ' + nd;\n  kh.appendChild(p);\n  kh.scrollTop = kh.scrollHeight;\n}\ndocument.getElementById('g').onclick = function() {\n  const o = document.getElementById('o1');\n  if (!o.value.trim()) return;\n  them('Bạn', o.value);\n  o.value = '';\n  setTimeout(function() { them('Bot', 'Mình nhận được rồi!'); }, 600);\n};"},
+{t:"Đăng ký / đăng nhập (giả lập)",e:"Mô phỏng logic tài khoản: kiểm tra độ dài mật khẩu, kiểm tra trùng tên, rồi so khớp khi đăng nhập. Lưu ý: ứng dụng thật không bao giờ lưu mật khẩu dạng chữ thường như ví dụ này.",task:"Thử thách: thêm điều kiện mật khẩu phải khác tên đăng nhập.",c:"const tk = [];\nfunction dangKy(ten, mk) {\n  if (mk.length < 6) return 'Mật khẩu quá ngắn';\n  if (tk.some(function(u) { return u.ten === ten; })) return 'Tên đã tồn tại';\n  tk.push({ ten: ten, mk: mk });\n  return 'Đăng ký thành công';\n}\nfunction dangNhap(ten, mk) {\n  const u = tk.find(function(x) { return x.ten === ten; });\n  return u && u.mk === mk ? 'Chào ' + ten : 'Sai tên hoặc mật khẩu';\n}\nconsole.log(dangKy('an', '123'));\nconsole.log(dangKy('an', '123456'));\nconsole.log(dangNhap('an', '123456'));\nconsole.log(dangNhap('an', 'sai'));"}]},
 py:{name:"Python",lessons:[
 {t:"print và biến",e:"Python rất gọn: không cần dấu chấm phẩy. <b>print()</b> in ra màn hình, biến tạo bằng dấu <b>=</b>.",task:"Thử thách: tạo biến ten và in lời chào. Chép code vào máy bạn (cài Python từ python.org) để chạy thật.",c:"ten = \"Nam\"\ntuoi = 20\nprint(\"Xin chào\", ten)\nprint(\"Năm sau\", tuoi + 1, \"tuổi\")",o:"Xin chào Nam\nNăm sau 21 tuổi"},
 {t:"Điều kiện và thụt lề",e:"Python dùng <b>thụt lề</b> (4 dấu cách) thay cho dấu ngoặc nhọn. Sau <b>if</b>, <b>else</b>, <b>for</b> phải có dấu hai chấm.",task:"Thử thách: đổi nhiet_do thành 20 rồi đoán kết quả trước khi chạy.",c:"nhiet_do = 35\nif nhiet_do > 30:\n    print(\"Trời nóng, uống nước nhé\")\nelse:\n    print(\"Thời tiết dễ chịu\")",o:"Trời nóng, uống nước nhé"},
 {t:"List và vòng lặp for",e:"<b>List</b> là danh sách trong dấu [ ]. Vòng <b>for</b> duyệt từng phần tử, <b>len()</b> đếm số phần tử.",task:"Thử thách: thêm một món vào list và đoán số lượng mới.",c:"mon = [\"phở\", \"bún\", \"cơm\"]\nfor m in mon:\n    print(\"Hôm nay ăn\", m)\nprint(\"Tổng:\", len(mon), \"món\")",o:"Hôm nay ăn phở\nHôm nay ăn bún\nHôm nay ăn cơm\nTổng: 3 món"},
 {t:"Dictionary và hàm",e:"<b>Dictionary</b> lưu cặp key: value trong dấu { }. Hàm tạo bằng <b>def</b>, trả kết quả bằng <b>return</b>.",task:"Thử thách: thêm một bạn mới vào dictionary rồi đoán kết quả.",c:"diem = {\"An\": 9, \"Bình\": 7}\n\ndef xep_loai(d):\n    return \"Giỏi\" if d >= 8 else \"Khá\"\n\nfor ten, d in diem.items():\n    print(ten, d, xep_loai(d))",o:"An 9 Giỏi\nBình 7 Khá"},
 {t:"import: thư viện math",e:"<b>import</b> gọi thêm bộ công cụ có sẵn của Python. <b>math</b> có căn bậc hai, số pi, làm tròn...",task:"Thử thách: đoán kết quả của math.sqrt(144) trước khi chạy ở máy bạn.",c:"import math\n\nprint(math.sqrt(81))\nprint(round(math.pi, 2))\nprint(math.ceil(4.2))",o:"9.0\n3.14\n5"},
-{t:"import: thời gian datetime",e:"<b>datetime</b> làm việc với ngày giờ, <b>strftime</b> định dạng thành chữ. <b>from ... import ...</b> chỉ lấy đúng thứ cần dùng.",task:"Thử thách: đổi ngày trong date(...) thành sinh nhật của bạn.",c:"from datetime import date\n\nngay = date(2026, 11, 20)\nprint(ngay.strftime(\"%d/%m/%Y\"))\nprint(ngay.year + 1)\n# date.today() cho ra ngày hôm nay",o:"20/11/2026\n2027"}]}
+{t:"import: thời gian datetime",e:"<b>datetime</b> làm việc với ngày giờ, <b>strftime</b> định dạng thành chữ. <b>from ... import ...</b> chỉ lấy đúng thứ cần dùng.",task:"Thử thách: đổi ngày trong date(...) thành sinh nhật của bạn.",c:"from datetime import date\n\nngay = date(2026, 11, 20)\nprint(ngay.strftime(\"%d/%m/%Y\"))\nprint(ngay.year + 1)\n# date.today() cho ra ngày hôm nay",o:"20/11/2026\n2027"},
+{t:"Chuỗi (string)",e:"Chuỗi trong Python có nhiều hàm tiện: <b>len</b>, <b>.upper()</b>, <b>.title()</b>, cắt bằng <b>[:3]</b>, <b>.replace()</b>, <b>.split()</b>. Chuỗi f\"...{biến}...\" chèn biến vào chữ.",task:"Thử thách: in thêm ten[::-1] và đoán kết quả (đảo ngược chuỗi).",c:"ten = \"lập trình\"\nprint(len(ten))\nprint(ten.upper())\nprint(ten.title())\nprint(ten[:3])\nprint(ten.replace(\"lập\", \"code\"))\nprint(\"trình\" in ten)\nprint(f\"Xin chào {ten}!\")\nprint(ten.split(\" \"))",o:"9\nLẬP TRÌNH\nLập Trình\nlập\ncode trình\nTrue\nXin chào lập trình!\n['lập', 'trình']"},
+{t:"Đăng ký / đăng nhập",e:"Dùng <b>dictionary</b> làm \"kho tài khoản\": key là tên, value là mật khẩu. <b>.get()</b> lấy giá trị mà không báo lỗi nếu chưa có. Ứng dụng thật phải mã hóa mật khẩu.",task:"Thử thách: thêm điều kiện tên đăng nhập phải từ 3 ký tự.",c:"tai_khoan = {}\n\ndef dang_ky(ten, mk):\n    if len(mk) < 6:\n        return \"Mật khẩu quá ngắn\"\n    if ten in tai_khoan:\n        return \"Tên đã tồn tại\"\n    tai_khoan[ten] = mk\n    return \"Đăng ký thành công\"\n\ndef dang_nhap(ten, mk):\n    if tai_khoan.get(ten) == mk:\n        return \"Chào \" + ten\n    return \"Sai tên hoặc mật khẩu\"\n\nprint(dang_ky(\"an\", \"123\"))\nprint(dang_ky(\"an\", \"123456\"))\nprint(dang_nhap(\"an\", \"123456\"))\nprint(dang_nhap(\"an\", \"sai\"))",o:"Mật khẩu quá ngắn\nĐăng ký thành công\nChào an\nSai tên hoặc mật khẩu"},
+{t:"Chat bot đơn giản",e:"Bot tra câu hỏi trong dictionary. <b>.get(khóa, mặc định)</b> trả về câu mặc định khi bot chưa biết.",task:"Thử thách: dạy bot thêm câu \"tạm biệt\".",c:"tra_loi = {\"xin chào\": \"Chào bạn!\", \"tên gì\": \"Mình là bot\"}\ntin_nhan = [\"xin chào\", \"tên gì\", \"hôm nay ăn gì\"]\nfor t in tin_nhan:\n    print(\"Bạn:\", t)\n    print(\"Bot:\", tra_loi.get(t, \"Mình chưa hiểu\"))",o:"Bạn: xin chào\nBot: Chào bạn!\nBạn: tên gì\nBot: Mình là bot\nBạn: hôm nay ăn gì\nBot: Mình chưa hiểu"}]}
 };
+L.cpp={name:"C++",lessons:[
+{t:"Hello World",e:"C++ là ngôn ngữ biên dịch, rất nhanh. <b>#include &lt;iostream&gt;</b> nạp công cụ nhập xuất, <b>main()</b> là nơi chương trình bắt đầu, <b>cout</b> in ra màn hình. Mỗi câu lệnh kết thúc bằng dấu chấm phẩy.",task:"Thử thách: chép vào máy (hoặc trình chạy C++ online) rồi đổi lời chào thành tên bạn.",c:"#include <iostream>\nusing namespace std;\n\nint main() {\n    cout << \"Xin chào C++\" << endl;\n    return 0;\n}",o:"Xin chào C++"},
+{t:"Biến và if",e:"C++ cần khai báo kiểu dữ liệu: <b>int</b> số nguyên, <b>double</b> số thực, <b>string</b> chuỗi, <b>bool</b> đúng/sai. Điều kiện <b>if / else</b> giống JavaScript.",task:"Thử thách: đổi tuoi thành 15 và đoán kết quả.",c:"#include <iostream>\nusing namespace std;\n\nint main() {\n    int tuoi = 20;\n    if (tuoi >= 18) {\n        cout << \"Đủ tuổi\" << endl;\n    } else {\n        cout << \"Chưa đủ tuổi\" << endl;\n    }\n    return 0;\n}",o:"Đủ tuổi"},
+{t:"Vòng lặp for",e:"<b>for (khởi tạo; điều kiện; bước nhảy)</b> lặp lại một khối lệnh. Toán tử <b>&lt;&lt;</b> nối nhiều thứ để in trên một dòng.",task:"Thử thách: đổi 3 thành 5 và đoán kết quả.",c:"#include <iostream>\nusing namespace std;\n\nint main() {\n    for (int i = 1; i <= 3; i++) {\n        cout << \"Lần \" << i << endl;\n    }\n    return 0;\n}",o:"Lần 1\nLần 2\nLần 3"}]};
 L.bt={name:"Bài tập",lessons:[
 {lg:"HTML",t:"Tiêu đề và nút",e:"Gợi ý: dùng thẻ h1 và button.",task:"Đề: tạo một tiêu đề h1 và một nút button có chữ bất kỳ.",c:"<p>Viết code của bạn ở đây</p>",has:[["<h1[\\s>]","Thiếu thẻ &lt;h1&gt;"],["<button[\\s>]","Thiếu thẻ &lt;button&gt;"]],sol:"<h1>Xin chào</h1>\n<button>Bấm</button>"},
 {lg:"HTML",t:"Danh sách 3 món",e:"Gợi ý: ul chứa các li.",task:"Đề: tạo danh sách chấm có ít nhất 3 món ăn.",c:"<ul>\n  <li>Món 1</li>\n</ul>",has:[["<ul[\\s>]","Thiếu thẻ &lt;ul&gt;"],["(<li[\\s>][\\s\\S]*){3}","Cần ít nhất 3 thẻ &lt;li&gt;"]],sol:"<ul>\n  <li>Phở</li>\n  <li>Bún</li>\n  <li>Cơm</li>\n</ul>"},
@@ -168,7 +247,9 @@ L.bt={name:"Bài tập",lessons:[
 {lg:"JS",t:"In số từ 1 đến 5",e:"Gợi ý: vòng for với console.log.",task:"Đề: in ra 1, 2, 3, 4, 5 mỗi số một dòng.",c:"// Viết code của bạn ở đây\n",has:[["for|while","Hãy dùng vòng lặp"]],out:"1\n2\n3\n4\n5",sol:"for (let i = 1; i <= 5; i++) {\n  console.log(i);\n}"},
 {lg:"JS",t:"Hàm bình phương",e:"Gợi ý: function ... return.",task:"Đề: viết hàm binhPhuong(x) trả về x * x, rồi in binhPhuong(5).",c:"// Viết hàm binhPhuong ở đây\n",has:[["function\\s+binhPhuong|binhPhuong\\s*=","Chưa khai báo hàm binhPhuong"]],out:"25",sol:"function binhPhuong(x) {\n  return x * x;\n}\nconsole.log(binhPhuong(5));"},
 {lg:"Python",t:"Xin chào Python",e:"Gợi ý: print(\"...\"). Bài này được kiểm tra bằng cách đọc code của bạn.",task:"Đề: in ra đúng câu Xin chào Python.",c:"# Viết code của bạn ở đây\n",has:[["print\\s*\\(.*Xin chào Python","Chưa có lệnh print in câu Xin chào Python"]],sol:"print(\"Xin chào Python\")"},
-{lg:"Python",t:"Vòng for với range",e:"Gợi ý: range(1, 4) cho ra 1, 2, 3. Nhớ thụt lề 4 dấu cách.",task:"Đề: dùng for ... in range(...) để in các số 1 đến 3, mỗi số một dòng.",c:"# Viết code của bạn ở đây\n",has:[["for\\s+\\w+\\s+in\\s+range\\s*\\(","Cần vòng for ... in range(...)"],["print\\s*\\(","Cần dùng print()"]],sol:"for i in range(1, 4):\n    print(i)"}]};
+{lg:"Python",t:"Vòng for với range",e:"Gợi ý: range(1, 4) cho ra 1, 2, 3. Nhớ thụt lề 4 dấu cách.",task:"Đề: dùng for ... in range(...) để in các số 1 đến 3, mỗi số một dòng.",c:"# Viết code của bạn ở đây\n",has:[["for\\s+\\w+\\s+in\\s+range\\s*\\(","Cần vòng for ... in range(...)"],["print\\s*\\(","Cần dùng print()"]],sol:"for i in range(1, 4):\n    print(i)"},
+{lg:"JS",t:"Chữ in hoa",e:"Gợi ý: toUpperCase().",task:"Đề: in ra HELLO từ chuỗi \"hello\" bằng toUpperCase().",c:"const s = \"hello\";\n",has:[["toUpperCase","Hãy dùng toUpperCase()"]],out:"HELLO",sol:"const s = \"hello\";\nconsole.log(s.toUpperCase());"},
+{lg:"Python",t:"Chữ in hoa",e:"Gợi ý: .upper(). Bài này được kiểm tra bằng cách đọc code.",task:"Đề: cho ten = \"an\", in ra tên viết hoa bằng .upper().",c:"ten = \"an\"\n",has:[["\\.upper\\s*\\(","Hãy dùng .upper()"],["print\\s*\\(","Cần dùng print()"]],sol:"ten = \"an\"\nprint(ten.upper())"}]};
 L.web={name:"Viết code Web",free:1};
 L.all={name:"Viết code gộp",free:1};
 L.pyp={name:"Viết code Python",free:1};
@@ -196,7 +277,7 @@ function render(){
   $("task").textContent=x.task;
   $("code").value=x.c;
   $("result").innerHTML="";
-  $("run").textContent=lang==="bt"?"Kiểm tra bài":lang==="py"?"Xem kết quả mẫu":"Chạy code";$("sol").hidden=lang!=="bt";
+  $("run").textContent=lang==="bt"?"Kiểm tra bài":lang==="py"||lang==="cpp"?"Xem kết quả mẫu":"Chạy code";$("sol").hidden=lang!=="bt";
 }
 function esc(s){return String(s).replace(/[&<>]/g,function(c){return{"&":"&amp;","<":"&lt;",">":"&gt;"}[c]})}
 function jsDoc(code){return '<body style="font-family:sans-serif;margin:8px"><div id="app"></div><script>var log=function(){parent.postMessage({k:"log",v:Array.prototype.slice.call(arguments).join(" ")},"*")};console.log=log;window.onerror=function(m){parent.postMessage({k:"err",v:String(m)},"*")};try{'+code.replace(/<\/script>/gi,"<\\/script>")+'\n}catch(e){parent.postMessage({k:"err",v:String(e)},"*")}<\/script>'}
@@ -219,11 +300,11 @@ function grade(x,code){
 function run(){
   var x=cur(),code=$("code").value,r=$("result");
   if(lang==="bt"){grade(x,code);return}
-  if(lang==="py"){
-    r.innerHTML='<div class="label">Kết quả khi chạy bản mẫu</div><pre class="out"></pre><p class="note">Trình duyệt không chạy Python trực tiếp, nên đây là kết quả của code mẫu. Hãy chép code sang máy bạn hoặc một trình chạy online để thử bản bạn sửa.</p>';
+  if(lang==="py"||lang==="cpp"){
+    r.innerHTML='<div class="label">Kết quả khi chạy bản mẫu</div><pre class="out"></pre><p class="note">Đây là kết quả của code mẫu (tab học không chạy trực tiếp ngôn ngữ này). Muốn thử bản bạn sửa, hãy dùng tab Viết code Python hoặc chép code sang máy bạn.</p>';
     r.querySelector("pre").textContent=x.o;
   }else if(lang==="js"){
-    r.innerHTML='<div class="label">Khung hiển thị</div><iframe sandbox="allow-scripts" title="Kết quả" style="height:130px"></iframe><div class="label">Console</div><pre class="out" id="o"></pre>';
+    r.innerHTML='<div class="label">Khung hiển thị</div><iframe sandbox="allow-scripts" title="Kết quả" style="height:200px"></iframe><div class="label">Console</div><pre class="out" id="o"></pre>';
     r.querySelector("iframe").srcdoc=jsDoc(code);
   }else{
     r.innerHTML='<div class="label">Kết quả</div><iframe sandbox="allow-scripts" title="Kết quả"></iframe>';
@@ -238,7 +319,12 @@ window.addEventListener("message",function(e){
   var o=lang==="web"?$("wo"):lang==="all"?$("ao"):$("o");if(o)o.textContent+=t+"\n";
 });
 $("run").onclick=run;
-$("sol").onclick=function(){$("code").value=cur().sol};
+$("sol").onclick=function(){
+  var x=cur();
+  $("result").innerHTML='<div class="card"><b>Đáp án</b>'+(x.out!==undefined?'<p class="note">Kết quả in ra: '+esc(x.out.replace(/\n/g," | "))+'</p>':'')+'<pre class="out" id="solp"></pre><div class="row"><button class="ghost" id="solcp">Chép đáp án vào ô code</button></div></div>';
+  $("solp").textContent=x.sol;
+  $("solcp").onclick=function(){$("code").value=x.sol};
+};
 $("reset").onclick=function(){$("code").value=cur().c;$("result").innerHTML=""};
 $("code").addEventListener("keydown",function(e){
   if(e.key==="Tab"){e.preventDefault();var s=this.selectionStart;this.value=this.value.slice(0,s)+"  "+this.value.slice(this.selectionEnd);this.selectionStart=this.selectionEnd=s+2}
@@ -287,6 +373,87 @@ $("prun").onclick=runPy;
     if(e.key==="Tab"){e.preventDefault();var sp=id==="pycode"?"    ":"  ",a=this.selectionStart;this.value=this.value.slice(0,a)+sp+this.value.slice(this.selectionEnd);this.selectionStart=this.selectionEnd=a+sp.length}
   });
 });
+var chatMode="",chatMe=null,chatUnsub=null,fbP=null,fbAuth=null,fbDb=null;
+var FBV="https://www.gstatic.com/firebasejs/10.12.2/firebase-";
+function cView(v){["cSetup","cAuth","cRoom"].forEach(function(i){$(i).hidden=i!==v});$("cOut").hidden=v!=="cRoom"}
+function cErr(t){$("cErr").textContent=t||""}
+function loadJs(src){return new Promise(function(res,rej){var sc=document.createElement("script");sc.src=src;sc.onload=res;sc.onerror=function(){rej(new Error("Không tải được Firebase. Kiểm tra kết nối mạng."))};document.head.appendChild(sc)})}
+function initFb(){
+  if(fbP)return fbP;
+  fbP=loadJs(FBV+"app-compat.js").then(function(){return loadJs(FBV+"auth-compat.js")}).then(function(){return loadJs(FBV+"firestore-compat.js")}).then(function(){
+    firebase.initializeApp(FIREBASE_CONFIG);fbAuth=firebase.auth();fbDb=firebase.firestore();
+    fbAuth.onAuthStateChanged(function(u){if(u)enterRoom(u);else{leaveRoom();if(!$("chat").hidden)cView("cAuth")}});
+  });
+  fbP.catch(function(){fbP=null});
+  return fbP;
+}
+function renderMsgs(list){
+  var box=$("cList");box.innerHTML="";
+  list.forEach(function(m){
+    var d=document.createElement("div");d.className="msg"+(chatMe&&m.uid===chatMe.uid?" me":"");
+    var n=document.createElement("b");n.textContent=m.name||"Ẩn danh";
+    var t=document.createElement("span");t.textContent=m.text;
+    d.appendChild(n);d.appendChild(t);box.appendChild(d);
+  });
+  box.scrollTop=box.scrollHeight;
+}
+function leaveRoom(){if(chatUnsub){chatUnsub();chatUnsub=null}chatMe=null}
+function enterRoom(u){
+  if(chatUnsub){chatUnsub();chatUnsub=null}
+  chatMe={uid:u.uid,name:u.displayName||(u.email||"Ẩn danh").split("@")[0]};
+  $("cWho").textContent=chatMe.name;cView("cRoom");cErr("");
+  chatUnsub=fbDb.collection("messages").orderBy("ts","desc").limit(50).onSnapshot(function(sn){
+    var a=[];sn.forEach(function(d){a.push(d.data())});a.reverse();renderMsgs(a);
+  },function(e){cErr("Không đọc được tin nhắn ("+e.code+"). Kiểm tra lại Rules.")});
+}
+function localMsgs(){try{return JSON.parse(localStorage.getItem("chat-msgs")||"[]")}catch(e){return[]}}
+function enterLocal(){
+  chatMode="local";
+  var n="";try{n=localStorage.getItem("chat-name")||""}catch(e){}
+  if(!n){n=(prompt("Tên của bạn?")||"").trim().slice(0,30);if(n.length<2){cView("cSetup");return}try{localStorage.setItem("chat-name",n)}catch(e){}}
+  chatMe={uid:"local",name:n};$("cWho").textContent=n+" (chế độ thử)";cView("cRoom");renderMsgs(localMsgs());
+}
+function openChat(){
+  $("chat").hidden=false;cErr("");
+  if(!FIREBASE_CONFIG.apiKey||!FIREBASE_CONFIG.projectId){
+    if(chatMode==="local"){enterLocal();return}
+    cView("cSetup");return;
+  }
+  chatMode="fb";cView("cAuth");cErr("Đang kết nối...");
+  initFb().then(function(){cErr("");var u=fbAuth.currentUser;if(u)enterRoom(u);else cView("cAuth")},function(e){cErr(e.message)});
+}
+function closeChat(){$("chat").hidden=true;leaveRoom()}
+function sendMsg(){
+  var t=$("cMsg").value.trim().slice(0,500);if(!t||!chatMe)return;
+  $("cMsg").value="";
+  if(chatMode==="local"){var a=localMsgs();a.push({uid:"local",name:chatMe.name,text:t});a=a.slice(-100);try{localStorage.setItem("chat-msgs",JSON.stringify(a))}catch(e){}renderMsgs(a);return}
+  fbDb.collection("messages").add({uid:chatMe.uid,name:chatMe.name,text:t,ts:firebase.firestore.FieldValue.serverTimestamp()}).catch(function(e){cErr("Gửi lỗi ("+e.code+"). Kiểm tra lại Rules.")});
+}
+function authErr(e){
+  var m={"auth/email-already-in-use":"Email này đã có tài khoản","auth/invalid-credential":"Sai email hoặc mật khẩu","auth/wrong-password":"Sai email hoặc mật khẩu","auth/user-not-found":"Sai email hoặc mật khẩu","auth/weak-password":"Mật khẩu cần ít nhất 6 ký tự","auth/invalid-email":"Email chưa hợp lệ","auth/missing-password":"Chưa nhập mật khẩu","auth/unauthorized-domain":"Tên miền này chưa được thêm vào Authorized domains trong Firebase","auth/operation-not-allowed":"Chưa bật đăng nhập Email/Password trong Firebase","auth/too-many-requests":"Thử quá nhiều lần, hãy chờ một lát"};
+  cErr(m[e.code]||("Lỗi: "+(e.code||e.message)));
+}
+$("cLogin").onclick=function(){if(!fbAuth)return;cErr("");fbAuth.signInWithEmailAndPassword($("cEmail").value.trim(),$("cPass").value).catch(authErr)};
+$("cSignup").onclick=function(){
+  if(!fbAuth)return;
+  var nm=$("cName").value.trim();cErr("");
+  if(nm.length<2){cErr("Nhập tên hiển thị (ít nhất 2 ký tự)");return}
+  fbAuth.createUserWithEmailAndPassword($("cEmail").value.trim(),$("cPass").value).then(function(c){
+    return c.user.updateProfile({displayName:nm.slice(0,30)}).then(function(){enterRoom(c.user)});
+  }).catch(authErr);
+};
+$("cOut").onclick=function(){
+  if(chatMode==="local"){try{localStorage.removeItem("chat-name")}catch(e){}leaveRoom();cView("cSetup")}
+  else if(fbAuth){fbAuth.signOut()}
+};
+$("cDemo").onclick=function(){enterLocal()};
+$("cCopy").onclick=function(){var t=$("cRules");t.select();try{navigator.clipboard.writeText(t.value)}catch(e){document.execCommand("copy")}cErr("Đã chép rules.")};
+$("cSend").onclick=sendMsg;
+$("cMsg").addEventListener("keydown",function(e){if(e.key==="Enter")sendMsg()});
+$("cClose").onclick=closeChat;
+document.addEventListener("keydown",function(e){if(e.key==="Escape"&&!$("chat").hidden)closeChat()});
+document.querySelectorAll(".chatopen").forEach(function(b){b.onclick=openChat});
+
 render();
 </script>
 </body>
