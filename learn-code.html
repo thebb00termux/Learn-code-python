@@ -79,6 +79,38 @@ button { padding: 10px 20px; border-radius: 8px; }</textarea>
   <div class="label">Console</div>
   <pre class="out" id="wo"></pre>
 </section>
+<section id="all" hidden>
+  <div class="card"><h2>Viết code gộp</h2><p>Viết HTML, CSS và JavaScript chung trong một ô: CSS đặt trong thẻ <b>&lt;style&gt;</b>, JavaScript đặt trong thẻ <b>&lt;script&gt;</b>. Giống hệt một file .html thật.</p></div>
+  <label class="label" for="ac">Code gộp</label>
+  <textarea id="ac" style="min-height:340px" spellcheck="false" autocapitalize="off">&lt;!DOCTYPE html&gt;
+&lt;html lang="vi"&gt;
+&lt;head&gt;
+  &lt;meta charset="utf-8"&gt;
+  &lt;title&gt;Trang của mình&lt;/title&gt;
+  &lt;style&gt;
+    body { font-family: sans-serif; text-align: center; }
+    h1 { color: teal; }
+    button { padding: 10px 20px; border-radius: 8px; }
+  &lt;/style&gt;
+&lt;/head&gt;
+&lt;body&gt;
+  &lt;h1 id="tieude"&gt;Xin chào!&lt;/h1&gt;
+  &lt;button id="nut"&gt;Bấm thử&lt;/button&gt;
+
+  &lt;script&gt;
+    document.getElementById("nut").onclick = function() {
+      document.getElementById("tieude").textContent = "Bạn vừa bấm nút!";
+      console.log("Đã bấm");
+    };
+  &lt;/script&gt;
+&lt;/body&gt;
+&lt;/html&gt;</textarea>
+  <div class="row"><button class="run" id="arun">Chạy trang web</button></div>
+  <div class="label">Kết quả</div>
+  <iframe id="af" sandbox="allow-scripts" title="Kết quả code gộp" style="height:260px"></iframe>
+  <div class="label">Console</div>
+  <pre class="out" id="ao"></pre>
+</section>
 <section id="pyp" hidden>
   <div class="card"><h2>Viết code Python</h2><p>Viết Python ở ô dưới rồi bấm Chạy. Python chạy thật ngay trong trình duyệt. Lần đầu cần mạng và chờ vài giây để tải.</p></div>
   <label class="label" for="pycode">Code Python</label>
@@ -138,6 +170,7 @@ L.bt={name:"Bài tập",lessons:[
 {lg:"Python",t:"Xin chào Python",e:"Gợi ý: print(\"...\"). Bài này được kiểm tra bằng cách đọc code của bạn.",task:"Đề: in ra đúng câu Xin chào Python.",c:"# Viết code của bạn ở đây\n",has:[["print\\s*\\(.*Xin chào Python","Chưa có lệnh print in câu Xin chào Python"]],sol:"print(\"Xin chào Python\")"},
 {lg:"Python",t:"Vòng for với range",e:"Gợi ý: range(1, 4) cho ra 1, 2, 3. Nhớ thụt lề 4 dấu cách.",task:"Đề: dùng for ... in range(...) để in các số 1 đến 3, mỗi số một dòng.",c:"# Viết code của bạn ở đây\n",has:[["for\\s+\\w+\\s+in\\s+range\\s*\\(","Cần vòng for ... in range(...)"],["print\\s*\\(","Cần dùng print()"]],sol:"for i in range(1, 4):\n    print(i)"}]};
 L.web={name:"Viết code Web",free:1};
+L.all={name:"Viết code gộp",free:1};
 L.pyp={name:"Viết code Python",free:1};
 var $=function(i){return document.getElementById(i)};
 var lang="html",idx=0,done={};
@@ -156,7 +189,7 @@ function renderLessons(){
   $("lessons").querySelectorAll("button").forEach(function(b){b.onclick=function(){idx=+b.dataset.i;render()}});
 }
 function render(){
-  renderTabs();$("learn").hidden=!!L[lang].free;$("web").hidden=lang!=="web";$("pyp").hidden=lang!=="pyp";if(L[lang].free){return}renderLessons();
+  renderTabs();$("learn").hidden=!!L[lang].free;$("web").hidden=lang!=="web";$("all").hidden=lang!=="all";$("pyp").hidden=lang!=="pyp";if(L[lang].free){return}renderLessons();
   var x=cur();
   $("title").textContent=(lang==="bt"?"Bài tập "+x.lg:L[lang].name)+": "+x.t;
   $("explain").innerHTML="<p>"+x.e+"</p>";
@@ -202,7 +235,7 @@ window.addEventListener("message",function(e){
   if(!e.data)return;
   var t=(e.data.k==="err"?"Lỗi: ":"")+e.data.v;
   if(window.__col){window.__col.push(t);return}
-  var o=lang==="web"?$("wo"):$("o");if(o)o.textContent+=t+"\n";
+  var o=lang==="web"?$("wo"):lang==="all"?$("ao"):$("o");if(o)o.textContent+=t+"\n";
 });
 $("run").onclick=run;
 $("sol").onclick=function(){$("code").value=cur().sol};
@@ -217,6 +250,12 @@ function runWeb(){
   $("wf").srcdoc='<!DOCTYPE html><html><head><meta charset="utf-8"><style>'+c+'</style><script>'+HOOK+'<\/script></head><body>'+h+'<script>try{'+j+'\n}catch(e){console.log("Lỗi: "+e)}<\/script></body></html>';
 }
 $("wrun").onclick=runWeb;
+function runAll(){
+  var c=$("ac").value,hook='<script>'+HOOK+'<\/script>';
+  $("ao").textContent="";
+  $("af").srcdoc=/<head[^>]*>/i.test(c)?c.replace(/<head[^>]*>/i,function(m){return m+hook}):hook+c;
+}
+$("arun").onclick=runAll;
 var pyP=null;
 function loadPy(){
   if(pyP)return pyP;
@@ -243,7 +282,7 @@ function runPy(){
   }).catch(function(e){st.textContent=String(e.message||e)});
 }
 $("prun").onclick=runPy;
-["wh","wc","wj","pycode"].forEach(function(id){
+["wh","wc","wj","ac","pycode"].forEach(function(id){
   $(id).addEventListener("keydown",function(e){
     if(e.key==="Tab"){e.preventDefault();var sp=id==="pycode"?"    ":"  ",a=this.selectionStart;this.value=this.value.slice(0,a)+sp+this.value.slice(this.selectionEnd);this.selectionStart=this.selectionEnd=a+sp.length}
   });
