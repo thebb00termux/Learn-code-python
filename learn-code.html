@@ -54,6 +54,11 @@ pre.out{margin:0;background:var(--code);color:var(--codetx);border-radius:10px;p
 .msg.me b{color:inherit;opacity:.8}
 .cbar{display:flex;gap:8px;padding:10px 12px;border-top:1px solid var(--bd)}
 .cbar input{flex:1;width:auto;margin:0}
+.msg img{max-width:100%;border-radius:8px;margin-top:4px;display:block}
+.w{display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--bd)}
+.w div{flex:1}
+.w small{display:block;color:var(--mu)}
+.lnk{display:inline-block;text-decoration:none;color:var(--tx);border:1px solid var(--bd);border-radius:10px;padding:10px 14px;margin:4px 4px 0 0;background:var(--sf)}
 </style>
 </head>
 <body>
@@ -130,6 +135,20 @@ button { padding: 10px 20px; border-radius: 8px; }</textarea>
   <div class="label">Console</div>
   <pre class="out" id="ao"></pre>
 </section>
+<section id="eng" hidden>
+  <div class="card"><h2>Tiếng Anh cho dân lập trình</h2><p>Bấm 🔊 để nghe phát âm (dùng giọng đọc có sẵn trên máy). Bấm Đố vui để tự kiểm tra.</p></div>
+  <div class="row"><button class="run" id="enquiz">Đố vui</button></div>
+  <div id="enq"></div>
+  <div id="enlist"></div>
+</section>
+<section id="mus" hidden>
+  <div class="card"><h2>Nhạc để code</h2><p>Nhạc NCS và TheFatRat phát bằng trình phát YouTube chính thức, bản quyền thuộc về nghệ sĩ và nhãn đĩa. Bấm Phát để tải trình phát (cần mạng).</p></div>
+  <div class="card"><b>NCS (NoCopyrightSounds)</b>
+    <div class="row"><button class="run" data-src="https://www.youtube-nocookie.com/embed/videoseries?list=UU_aEa8K-EOJ3D6gOs7HcyNg">▶ Phát nhạc NCS</button><a class="lnk" href="https://www.youtube.com/channel/UC_aEa8K-EOJ3D6gOs7HcyNg" target="_blank" rel="noopener">Mở kênh NCS</a></div><div class="pl"></div></div>
+  <div class="card"><b>TheFatRat</b>
+    <div class="row"><button class="run" data-src="https://www.youtube-nocookie.com/embed/videoseries?list=UUa_UMppcMsHIzb5LDx1u9zQ">▶ Phát nhạc TheFatRat</button><button class="ghost" data-src="https://www.youtube-nocookie.com/embed/hzHkh1ipbVk">▶ Unity 10th Mixtape</button><a class="lnk" href="https://www.youtube.com/channel/UCa_UMppcMsHIzb5LDx1u9zQ" target="_blank" rel="noopener">Mở kênh TheFatRat</a></div><div class="pl"></div></div>
+  <div class="card"><b>Tìm bài cụ thể trên YouTube</b><div id="songs"></div></div>
+</section>
 <section id="pyp" hidden>
   <div class="card"><h2>Viết code Python</h2><p>Viết Python ở ô dưới rồi bấm Chạy. Python chạy thật ngay trong trình duyệt. Lần đầu cần mạng và chờ vài giây để tải.</p></div>
   <label class="label" for="pycode">Code Python</label>
@@ -165,13 +184,18 @@ service cloud.firestore {
     match /messages/{id} {
       allow read: if request.auth != null;
       allow create: if request.auth != null
-        && request.resource.data.keys().hasOnly(['uid','name','text','ts'])
+        && request.resource.data.keys().hasOnly(['uid','name','text','img','ts'])
+        && request.resource.data.keys().hasAll(['uid','name','text','ts'])
         && request.resource.data.uid == request.auth.uid
         && request.resource.data.name is string
         && request.resource.data.name.size() <= 30
         && request.resource.data.text is string
-        && request.resource.data.text.size() > 0
         && request.resource.data.text.size() <= 500
+        && (request.resource.data.text.size() > 0 || 'img' in request.resource.data)
+        && (!('img' in request.resource.data)
+            || (request.resource.data.img is string
+                && request.resource.data.img.size() <= 250000
+                && request.resource.data.img.matches('data:image/jpeg;base64,.*')))
         && request.resource.data.ts == request.time;
       allow update, delete: if false;
     }
@@ -188,12 +212,13 @@ service cloud.firestore {
   </div>
   <div id="cRoom" hidden>
    <div id="cList" aria-live="polite"></div>
-   <div class="cbar"><input id="cMsg" maxlength="500" placeholder="Nhập tin nhắn..." autocomplete="off"><button class="run" id="cSend">Gửi</button></div>
+   <div class="cbar"><button class="ghost" id="cImg" aria-label="Gửi ảnh">📷</button><input id="cFile" type="file" accept="image/*" hidden><input id="cMsg" maxlength="500" placeholder="Nhập tin nhắn..." autocomplete="off"><button class="run" id="cSend">Gửi</button></div>
   </div>
  </div>
 </div>
 <script>
 /* ===== CẤU HÌNH CHAT: dán firebaseConfig của bạn vào đây ===== */
+var RO={py:1,cpp:1,c:1,cs:1,lua:1};
 var FIREBASE_CONFIG={apiKey:"AIzaSyBMsTdcbJqxALV_iNsR_1Qwipt2fOIwQMo",authDomain:"learn-code-python.firebaseapp.com",projectId:"learn-code-python",storageBucket:"learn-code-python.firebasestorage.app",messagingSenderId:"197145139414",appId:"1:197145139414:web:9699730d5e165c88ed9177"};
 var L={
 html:{name:"HTML",lessons:[
@@ -238,7 +263,10 @@ py:{name:"Python",lessons:[
 L.cpp={name:"C++",lessons:[
 {t:"Hello World",e:"C++ là ngôn ngữ biên dịch, rất nhanh. <b>#include &lt;iostream&gt;</b> nạp công cụ nhập xuất, <b>main()</b> là nơi chương trình bắt đầu, <b>cout</b> in ra màn hình. Mỗi câu lệnh kết thúc bằng dấu chấm phẩy.",task:"Thử thách: chép vào máy (hoặc trình chạy C++ online) rồi đổi lời chào thành tên bạn.",c:"#include <iostream>\nusing namespace std;\n\nint main() {\n    cout << \"Xin chào C++\" << endl;\n    return 0;\n}",o:"Xin chào C++"},
 {t:"Biến và if",e:"C++ cần khai báo kiểu dữ liệu: <b>int</b> số nguyên, <b>double</b> số thực, <b>string</b> chuỗi, <b>bool</b> đúng/sai. Điều kiện <b>if / else</b> giống JavaScript.",task:"Thử thách: đổi tuoi thành 15 và đoán kết quả.",c:"#include <iostream>\nusing namespace std;\n\nint main() {\n    int tuoi = 20;\n    if (tuoi >= 18) {\n        cout << \"Đủ tuổi\" << endl;\n    } else {\n        cout << \"Chưa đủ tuổi\" << endl;\n    }\n    return 0;\n}",o:"Đủ tuổi"},
-{t:"Vòng lặp for",e:"<b>for (khởi tạo; điều kiện; bước nhảy)</b> lặp lại một khối lệnh. Toán tử <b>&lt;&lt;</b> nối nhiều thứ để in trên một dòng.",task:"Thử thách: đổi 3 thành 5 và đoán kết quả.",c:"#include <iostream>\nusing namespace std;\n\nint main() {\n    for (int i = 1; i <= 3; i++) {\n        cout << \"Lần \" << i << endl;\n    }\n    return 0;\n}",o:"Lần 1\nLần 2\nLần 3"}]};
+{t:"Vòng lặp for",e:"<b>for (khởi tạo; điều kiện; bước nhảy)</b> lặp lại một khối lệnh. Toán tử <b>&lt;&lt;</b> nối nhiều thứ để in trên một dòng.",task:"Thử thách: đổi 3 thành 5 và đoán kết quả.",c:"#include <iostream>\nusing namespace std;\n\nint main() {\n    for (int i = 1; i <= 3; i++) {\n        cout << \"Lần \" << i << endl;\n    }\n    return 0;\n}",o:"Lần 1\nLần 2\nLần 3"},{"t": "Nhập dữ liệu với cin", "e": "<b>cin &gt;&gt; biến</b> đọc dữ liệu người dùng gõ. Ví dụ dưới giả sử bạn gõ <b>An</b>.", "task": "Thử thách: đổi sang đọc tuổi bằng int tuoi; cin >> tuoi;", "c": "#include <iostream>\n#include <string>\nusing namespace std;\n\nint main() {\n    string ten;\n    cout << \"Tên bạn: \";\n    cin >> ten;\n    cout << \"Xin chào \" << ten << endl;\n    return 0;\n}", "o": "Tên bạn: Xin chào An"}, {"t": "Hàm", "e": "Hàm khai báo kiểu trả về trước tên: <b>int binhPhuong(int x)</b>. Hàm đặt phía trên main để main gọi được.", "task": "Thử thách: viết hàm cong(a, b) và in cong(3, 4).", "c": "#include <iostream>\nusing namespace std;\n\nint binhPhuong(int x) {\n    return x * x;\n}\n\nint main() {\n    cout << binhPhuong(5) << endl;\n    cout << binhPhuong(12) << endl;\n    return 0;\n}", "o": "25\n144"}, {"t": "Mảng động vector", "e": "<b>vector</b> là mảng co giãn được: <b>push_back</b> thêm phần tử, <b>size()</b> đếm, vòng <b>for (int x : so)</b> duyệt từng phần tử.", "task": "Thử thách: thêm số 10 vào vector rồi đoán tổng mới.", "c": "#include <iostream>\n#include <vector>\nusing namespace std;\n\nint main() {\n    vector<int> so = {3, 1, 4};\n    so.push_back(9);\n    int tong = 0;\n    for (int x : so) tong += x;\n    cout << \"Số phần tử: \" << so.size() << endl;\n    cout << \"Tổng: \" << tong << endl;\n    return 0;\n}", "o": "Số phần tử: 4\nTổng: 17"}, {"t": "Chuỗi string", "e": "Kiểu <b>string</b> có <b>+=</b> để nối, <b>length()</b> độ dài, <b>substr(vị trí, số ký tự)</b> để cắt.", "task": "Thử thách: in s.substr(5, 3) và đoán kết quả.", "c": "#include <iostream>\n#include <string>\nusing namespace std;\n\nint main() {\n    string s = \"code\";\n    s += \" vui\";\n    cout << s << endl;\n    cout << s.length() << endl;\n    cout << s.substr(0, 4) << endl;\n    return 0;\n}", "o": "code vui\n8\ncode"}]};
+L.c={name:"C",lessons:[{"t": "Hello World", "e": "C là ngôn ngữ nền tảng của hệ điều hành và phần cứng. <b>printf</b> in ra màn hình, <b>\\n</b> xuống dòng, mỗi câu lệnh kết thúc bằng dấu chấm phẩy.", "task": "Thử thách: đổi lời chào thành tên bạn.", "c": "#include <stdio.h>\n\nint main() {\n    printf(\"Xin chào C\\n\");\n    return 0;\n}", "o": "Xin chào C"}, {"t": "Biến và printf", "e": "Mã định dạng: <b>%d</b> số nguyên, <b>%f</b> số thực (<b>%.2f</b> lấy 2 số lẻ), <b>%c</b> một ký tự.", "task": "Thử thách: thêm biến int nam = 2026 và in ra.", "c": "#include <stdio.h>\n\nint main() {\n    int tuoi = 20;\n    double cao = 1.75;\n    char ch = 'A';\n    printf(\"Tuổi: %d\\n\", tuoi);\n    printf(\"Cao: %.2f\\n\", cao);\n    printf(\"Ký tự: %c\\n\", ch);\n    return 0;\n}", "o": "Tuổi: 20\nCao: 1.75\nKý tự: A"}, {"t": "Nhập dữ liệu scanf", "e": "<b>scanf(\"%d\", &amp;n)</b> đọc số nguyên vào biến n (dấu &amp; là địa chỉ của biến). Ví dụ giả sử bạn gõ <b>5</b>.", "task": "Thử thách: đổi thành nhân ba (n * 3).", "c": "#include <stdio.h>\n\nint main() {\n    int n;\n    printf(\"Nhập n: \");\n    scanf(\"%d\", &n);\n    printf(\"Gấp đôi: %d\\n\", n * 2);\n    return 0;\n}", "o": "Nhập n: Gấp đôi: 10"}, {"t": "if / else if", "e": "Điều kiện giống JavaScript. Các nhánh được xét từ trên xuống, nhánh nào đúng trước thì chạy.", "task": "Thử thách: đổi diem thành 9 và đoán kết quả.", "c": "#include <stdio.h>\n\nint main() {\n    int diem = 7;\n    if (diem >= 8) {\n        printf(\"Giỏi\\n\");\n    } else if (diem >= 5) {\n        printf(\"Khá\\n\");\n    } else {\n        printf(\"Yếu\\n\");\n    }\n    return 0;\n}", "o": "Khá"}, {"t": "Vòng lặp for", "e": "<b>for</b> cộng dồn các số từ 1 đến 5 vào biến tong.", "task": "Thử thách: đổi 5 thành 10 và đoán tổng.", "c": "#include <stdio.h>\n\nint main() {\n    int tong = 0;\n    for (int i = 1; i <= 5; i++) {\n        tong += i;\n    }\n    printf(\"Tổng 1..5 = %d\\n\", tong);\n    return 0;\n}", "o": "Tổng 1..5 = 15"}, {"t": "Mảng", "e": "Mảng có kích thước cố định, chỉ số bắt đầu từ 0. Ví dụ tìm số lớn nhất.", "task": "Thử thách: sửa để tìm số nhỏ nhất.", "c": "#include <stdio.h>\n\nint main() {\n    int a[4] = {5, 2, 8, 1};\n    int max = a[0];\n    for (int i = 1; i < 4; i++) {\n        if (a[i] > max) max = a[i];\n    }\n    printf(\"Lớn nhất: %d\\n\", max);\n    return 0;\n}", "o": "Lớn nhất: 8"}, {"t": "Hàm và đệ quy", "e": "Hàm tự gọi lại chính nó gọi là <b>đệ quy</b>. Giai thừa: 5! = 5 × 4!. Cần có điều kiện dừng.", "task": "Thử thách: tính 6! và đoán kết quả.", "c": "#include <stdio.h>\n\nint giaiThua(int n) {\n    if (n <= 1) return 1;\n    return n * giaiThua(n - 1);\n}\n\nint main() {\n    printf(\"5! = %d\\n\", giaiThua(5));\n    return 0;\n}", "o": "5! = 120"}]};
+L.cs={name:"C#",lessons:[{"t": "Hello World", "e": "C# (đọc là \"C sharp\") của Microsoft, dùng cho game Unity, web và ứng dụng Windows. <b>Console.WriteLine</b> in ra và xuống dòng.", "task": "Thử thách: đổi lời chào thành tên bạn.", "c": "using System;\n\nclass Program {\n    static void Main() {\n        Console.WriteLine(\"Xin chào C#\");\n    }\n}", "o": "Xin chào C#"}, {"t": "Biến và chuỗi nội suy", "e": "Chuỗi bắt đầu bằng <b>$</b> cho phép chèn biến vào bằng <b>{...}</b>.", "task": "Thử thách: thêm biến quequan và in ra.", "c": "using System;\n\nclass Program {\n    static void Main() {\n        string ten = \"Nam\";\n        int tuoi = 20;\n        Console.WriteLine($\"Tên: {ten}, tuổi: {tuoi}\");\n        Console.WriteLine(tuoi + 1);\n    }\n}", "o": "Tên: Nam, tuổi: 20\n21"}, {"t": "if / else", "e": "Cấu trúc điều kiện giống C và JavaScript.", "task": "Thử thách: đổi diem thành 9 và đoán kết quả.", "c": "using System;\n\nclass Program {\n    static void Main() {\n        int diem = 7;\n        if (diem >= 8) {\n            Console.WriteLine(\"Giỏi\");\n        } else if (diem >= 5) {\n            Console.WriteLine(\"Khá\");\n        } else {\n            Console.WriteLine(\"Yếu\");\n        }\n    }\n}", "o": "Khá"}, {"t": "Vòng lặp for", "e": "Vòng for có 3 phần: khởi tạo, điều kiện, bước nhảy.", "task": "Thử thách: đổi thành đếm ngược từ 3 về 1.", "c": "using System;\n\nclass Program {\n    static void Main() {\n        for (int i = 1; i <= 3; i++) {\n            Console.WriteLine(\"Lần \" + i);\n        }\n    }\n}", "o": "Lần 1\nLần 2\nLần 3"}, {"t": "List", "e": "<b>List&lt;string&gt;</b> là danh sách co giãn. <b>Add</b> thêm, <b>Count</b> đếm, <b>foreach</b> duyệt từng phần tử.", "task": "Thử thách: thêm món \"chè\" và đoán Count mới.", "c": "using System;\nusing System.Collections.Generic;\n\nclass Program {\n    static void Main() {\n        var mon = new List<string> { \"phở\", \"bún\" };\n        mon.Add(\"cơm\");\n        foreach (var m in mon) {\n            Console.WriteLine(m);\n        }\n        Console.WriteLine(mon.Count);\n    }\n}", "o": "phở\nbún\ncơm\n3"}, {"t": "Phương thức (method)", "e": "Phương thức tĩnh <b>static</b> khai báo kiểu trả về, tên và tham số, tương tự hàm.", "task": "Thử thách: viết phương thức Cong(a, b).", "c": "using System;\n\nclass Program {\n    static int BinhPhuong(int x) {\n        return x * x;\n    }\n\n    static void Main() {\n        Console.WriteLine(BinhPhuong(6));\n    }\n}", "o": "36"}, {"t": "Lớp (class)", "e": "C# là ngôn ngữ hướng đối tượng. <b>class</b> là bản thiết kế, <b>new</b> tạo ra đối tượng từ bản thiết kế đó.", "task": "Thử thách: thêm thuộc tính Lop và in ra.", "c": "using System;\n\nclass SinhVien {\n    public string Ten;\n    public int Tuoi;\n\n    public void ChaoHoi() {\n        Console.WriteLine($\"Mình là {Ten}, {Tuoi} tuổi\");\n    }\n}\n\nclass Program {\n    static void Main() {\n        var sv = new SinhVien { Ten = \"Lan\", Tuoi = 19 };\n        sv.ChaoHoi();\n    }\n}", "o": "Mình là Lan, 19 tuổi"}]};
+L.lua={name:"Lua",lessons:[{"t": "print", "e": "Lua là ngôn ngữ nhẹ, hay dùng trong game (Roblox, LÖVE) và phần mềm nhúng. <b>print</b> in ra, không cần dấu chấm phẩy.", "task": "Thử thách: đổi lời chào thành tên bạn.", "c": "print(\"Xin chào Lua\")", "o": "Xin chào Lua"}, {"t": "Biến và nối chuỗi", "e": "<b>local</b> tạo biến cục bộ. Toán tử <b>..</b> nối chuỗi với nhau (Lua không dùng + để nối).", "task": "Thử thách: thêm biến quequan và in ra.", "c": "local ten = \"Nam\"\nlocal tuoi = 20\nprint(\"Tên: \" .. ten)\nprint(tuoi + 1)", "o": "Tên: Nam\n21"}, {"t": "if / elseif", "e": "Lua dùng <b>then</b> sau điều kiện và <b>end</b> để đóng khối, không dùng ngoặc nhọn. Nhánh phụ viết là <b>elseif</b>.", "task": "Thử thách: đổi diem thành 9 và đoán kết quả.", "c": "local diem = 7\nif diem >= 8 then\n  print(\"Giỏi\")\nelseif diem >= 5 then\n  print(\"Khá\")\nelse\n  print(\"Yếu\")\nend", "o": "Khá"}, {"t": "Vòng lặp for", "e": "<b>for i = 1, 3 do</b> lặp từ 1 đến 3 (gồm cả số 3).", "task": "Thử thách: đổi thành for i = 3, 1, -1 do rồi đoán kết quả.", "c": "for i = 1, 3 do\n  print(\"Lần \" .. i)\nend", "o": "Lần 1\nLần 2\nLần 3"}, {"t": "Bảng (table) dạng danh sách", "e": "<b>table</b> là cấu trúc dữ liệu duy nhất của Lua. Làm danh sách thì chỉ số bắt đầu từ <b>1</b>. <b>#</b> đếm số phần tử.", "task": "Thử thách: thêm món \"kem\" và đoán Tổng mới.", "c": "local mon = {\"phở\", \"bún\", \"cơm\"}\ntable.insert(mon, \"chè\")\nfor i, m in ipairs(mon) do\n  print(i .. \". \" .. m)\nend\nprint(\"Tổng: \" .. #mon)", "o": "1. phở\n2. bún\n3. cơm\n4. chè\nTổng: 4"}, {"t": "Bảng dạng từ điển", "e": "Table cũng lưu cặp tên và giá trị, truy cập bằng dấu chấm: <b>sv.ten</b>.", "task": "Thử thách: thêm sv.tuoi = 19 và in ra.", "c": "local sv = {ten = \"Lan\", tuoi = 19}\nsv.lop = \"10A\"\nprint(sv.ten .. \" - \" .. sv.lop)", "o": "Lan - 10A"}, {"t": "Hàm", "e": "Hàm khai báo bằng <b>function</b> và đóng bằng <b>end</b>. Hàm có thể gọi lại chính nó (đệ quy).", "task": "Thử thách: tính giaiThua(6) và đoán kết quả.", "c": "local function giaiThua(n)\n  if n <= 1 then return 1 end\n  return n * giaiThua(n - 1)\nend\nprint(giaiThua(5))", "o": "120"}]};
 L.bt={name:"Bài tập",lessons:[
 {lg:"HTML",t:"Tiêu đề và nút",e:"Gợi ý: dùng thẻ h1 và button.",task:"Đề: tạo một tiêu đề h1 và một nút button có chữ bất kỳ.",c:"<p>Viết code của bạn ở đây</p>",has:[["<h1[\\s>]","Thiếu thẻ &lt;h1&gt;"],["<button[\\s>]","Thiếu thẻ &lt;button&gt;"]],sol:"<h1>Xin chào</h1>\n<button>Bấm</button>"},
 {lg:"HTML",t:"Danh sách 3 món",e:"Gợi ý: ul chứa các li.",task:"Đề: tạo danh sách chấm có ít nhất 3 món ăn.",c:"<ul>\n  <li>Món 1</li>\n</ul>",has:[["<ul[\\s>]","Thiếu thẻ &lt;ul&gt;"],["(<li[\\s>][\\s\\S]*){3}","Cần ít nhất 3 thẻ &lt;li&gt;"]],sol:"<ul>\n  <li>Phở</li>\n  <li>Bún</li>\n  <li>Cơm</li>\n</ul>"},
@@ -253,6 +281,8 @@ L.bt={name:"Bài tập",lessons:[
 L.web={name:"Viết code Web",free:1};
 L.all={name:"Viết code gộp",free:1};
 L.pyp={name:"Viết code Python",free:1};
+L.en={name:"Tiếng Anh",free:1};
+L.mus={name:"Nhạc",free:1};
 var $=function(i){return document.getElementById(i)};
 var lang="html",idx=0,done={};
 try{done=JSON.parse(localStorage.getItem("hoc-done")||"{}")}catch(e){}
@@ -270,14 +300,14 @@ function renderLessons(){
   $("lessons").querySelectorAll("button").forEach(function(b){b.onclick=function(){idx=+b.dataset.i;render()}});
 }
 function render(){
-  renderTabs();$("learn").hidden=!!L[lang].free;$("web").hidden=lang!=="web";$("all").hidden=lang!=="all";$("pyp").hidden=lang!=="pyp";if(L[lang].free){return}renderLessons();
+  renderTabs();$("learn").hidden=!!L[lang].free;$("web").hidden=lang!=="web";$("all").hidden=lang!=="all";$("eng").hidden=lang!=="en";$("mus").hidden=lang!=="mus";$("pyp").hidden=lang!=="pyp";if(L[lang].free){return}renderLessons();
   var x=cur();
   $("title").textContent=(lang==="bt"?"Bài tập "+x.lg:L[lang].name)+": "+x.t;
   $("explain").innerHTML="<p>"+x.e+"</p>";
   $("task").textContent=x.task;
   $("code").value=x.c;
   $("result").innerHTML="";
-  $("run").textContent=lang==="bt"?"Kiểm tra bài":lang==="py"||lang==="cpp"?"Xem kết quả mẫu":"Chạy code";$("sol").hidden=lang!=="bt";
+  $("run").textContent=lang==="bt"?"Kiểm tra bài":RO[lang]?"Xem kết quả mẫu":"Chạy code";$("sol").hidden=lang!=="bt";
 }
 function esc(s){return String(s).replace(/[&<>]/g,function(c){return{"&":"&amp;","<":"&lt;",">":"&gt;"}[c]})}
 function jsDoc(code){return '<body style="font-family:sans-serif;margin:8px"><div id="app"></div><script>var log=function(){parent.postMessage({k:"log",v:Array.prototype.slice.call(arguments).join(" ")},"*")};console.log=log;window.onerror=function(m){parent.postMessage({k:"err",v:String(m)},"*")};try{'+code.replace(/<\/script>/gi,"<\\/script>")+'\n}catch(e){parent.postMessage({k:"err",v:String(e)},"*")}<\/script>'}
@@ -300,7 +330,7 @@ function grade(x,code){
 function run(){
   var x=cur(),code=$("code").value,r=$("result");
   if(lang==="bt"){grade(x,code);return}
-  if(lang==="py"||lang==="cpp"){
+  if(RO[lang]){
     r.innerHTML='<div class="label">Kết quả khi chạy bản mẫu</div><pre class="out"></pre><p class="note">Đây là kết quả của code mẫu (tab học không chạy trực tiếp ngôn ngữ này). Muốn thử bản bạn sửa, hãy dùng tab Viết code Python hoặc chép code sang máy bạn.</p>';
     r.querySelector("pre").textContent=x.o;
   }else if(lang==="js"){
@@ -392,8 +422,10 @@ function renderMsgs(list){
   list.forEach(function(m){
     var d=document.createElement("div");d.className="msg"+(chatMe&&m.uid===chatMe.uid?" me":"");
     var n=document.createElement("b");n.textContent=m.name||"Ẩn danh";
-    var t=document.createElement("span");t.textContent=m.text;
-    d.appendChild(n);d.appendChild(t);box.appendChild(d);
+    d.appendChild(n);
+    if(m.text){var t=document.createElement("span");t.textContent=m.text;d.appendChild(t)}
+    if(m.img&&/^data:image\/jpeg;base64,/.test(m.img)){var im=document.createElement("img");im.src=m.img;im.alt="Ảnh";d.appendChild(im)}
+    box.appendChild(d);
   });
   box.scrollTop=box.scrollHeight;
 }
@@ -402,7 +434,7 @@ function enterRoom(u){
   if(chatUnsub){chatUnsub();chatUnsub=null}
   chatMe={uid:u.uid,name:u.displayName||(u.email||"Ẩn danh").split("@")[0]};
   $("cWho").textContent=chatMe.name;cView("cRoom");cErr("");
-  chatUnsub=fbDb.collection("messages").orderBy("ts","desc").limit(50).onSnapshot(function(sn){
+  chatUnsub=fbDb.collection("messages").orderBy("ts","desc").limit(30).onSnapshot(function(sn){
     var a=[];sn.forEach(function(d){a.push(d.data())});a.reverse();renderMsgs(a);
   },function(e){cErr("Không đọc được tin nhắn ("+e.code+"). Kiểm tra lại Rules.")});
 }
@@ -423,12 +455,33 @@ function openChat(){
   initFb().then(function(){cErr("");var u=fbAuth.currentUser;if(u)enterRoom(u);else cView("cAuth")},function(e){cErr(e.message)});
 }
 function closeChat(){$("chat").hidden=true;leaveRoom()}
-function sendMsg(){
-  var t=$("cMsg").value.trim().slice(0,500);if(!t||!chatMe)return;
-  $("cMsg").value="";
-  if(chatMode==="local"){var a=localMsgs();a.push({uid:"local",name:chatMe.name,text:t});a=a.slice(-100);try{localStorage.setItem("chat-msgs",JSON.stringify(a))}catch(e){}renderMsgs(a);return}
-  fbDb.collection("messages").add({uid:chatMe.uid,name:chatMe.name,text:t,ts:firebase.firestore.FieldValue.serverTimestamp()}).catch(function(e){cErr("Gửi lỗi ("+e.code+"). Kiểm tra lại Rules.")});
+function post(t,img){
+  if(!chatMe)return;
+  if(chatMode==="local"){var a=localMsgs();var m={uid:"local",name:chatMe.name,text:t};if(img)m.img=img;a.push(m);a=a.slice(-20);try{localStorage.setItem("chat-msgs",JSON.stringify(a))}catch(e){cErr("Bộ nhớ đầy, không lưu được ảnh")}renderMsgs(a);return}
+  var d={uid:chatMe.uid,name:chatMe.name,text:t,ts:firebase.firestore.FieldValue.serverTimestamp()};if(img)d.img=img;
+  fbDb.collection("messages").add(d).catch(function(e){cErr("Gửi lỗi ("+e.code+"). Kiểm tra lại Rules.")});
 }
+function sendMsg(){var t=$("cMsg").value.trim().slice(0,500);if(!t)return;$("cMsg").value="";post(t)}
+$("cImg").onclick=function(){if(chatMe)$("cFile").click()};
+$("cFile").onchange=function(){
+  var f=this.files[0];this.value="";
+  if(!f||!/^image\//.test(f.type)||!chatMe)return;
+  cErr("Đang xử lý ảnh...");
+  var url=URL.createObjectURL(f),im=new Image();
+  im.onload=function(){
+    var k=Math.min(1,640/Math.max(im.width,im.height)),cv=document.createElement("canvas");
+    cv.width=Math.max(1,Math.round(im.width*k));cv.height=Math.max(1,Math.round(im.height*k));
+    var cx=cv.getContext("2d");cx.fillStyle="#fff";cx.fillRect(0,0,cv.width,cv.height);cx.drawImage(im,0,0,cv.width,cv.height);
+    URL.revokeObjectURL(url);
+    var q=.7,d=cv.toDataURL("image/jpeg",q);
+    while(d.length>240000&&q>.3){q-=.1;d=cv.toDataURL("image/jpeg",q)}
+    if(d.length>240000){cErr("Ảnh quá lớn, hãy chọn ảnh khác");return}
+    var t=$("cMsg").value.trim().slice(0,500);$("cMsg").value="";
+    cErr("");post(t,d);
+  };
+  im.onerror=function(){cErr("Không đọc được ảnh")};
+  im.src=url;
+};
 function authErr(e){
   var m={"auth/email-already-in-use":"Email này đã có tài khoản","auth/invalid-credential":"Sai email hoặc mật khẩu","auth/wrong-password":"Sai email hoặc mật khẩu","auth/user-not-found":"Sai email hoặc mật khẩu","auth/weak-password":"Mật khẩu cần ít nhất 6 ký tự","auth/invalid-email":"Email chưa hợp lệ","auth/missing-password":"Chưa nhập mật khẩu","auth/unauthorized-domain":"Tên miền này chưa được thêm vào Authorized domains trong Firebase","auth/operation-not-allowed":"Chưa bật đăng nhập Email/Password trong Firebase","auth/too-many-requests":"Thử quá nhiều lần, hãy chờ một lát"};
   cErr(m[e.code]||("Lỗi: "+(e.code||e.message)));
@@ -453,6 +506,37 @@ $("cMsg").addEventListener("keydown",function(e){if(e.key==="Enter")sendMsg()});
 $("cClose").onclick=closeChat;
 document.addEventListener("keydown",function(e){if(e.key==="Escape"&&!$("chat").hidden)closeChat()});
 document.querySelectorAll(".chatopen").forEach(function(b){b.onclick=openChat});
+
+var EN=[["variable","biến","A variable stores a value."],["function","hàm","This function returns a number."],["loop","vòng lặp","The loop runs ten times."],["condition","điều kiện","Check the condition first."],["array","mảng","An array holds many items."],["string","chuỗi","A string is a piece of text."],["number","số","Enter a number."],["boolean","đúng/sai","A boolean is true or false."],["object","đối tượng","The object has a name."],["class","lớp","Create a new class."],["method","phương thức","Call the method."],["parameter","tham số","The function has two parameters."],["return","trả về","The function will return a value."],["error","thông báo lỗi","The error says the file is missing."],["bug","con bọ (lỗi phần mềm)","I found a bug in my code."],["debug","gỡ lỗi","Let me debug this program."],["compile","biên dịch","Compile the code before running."],["run","chạy","Run the program."],["input","dữ liệu nhập vào","Read the input from the user."],["output","kết quả xuất ra","Print the output on the screen."],["database","cơ sở dữ liệu","Save the data in a database."],["server","máy chủ","The server sends a message."],["password","mật khẩu","Your password is too short."],["login","đăng nhập","Please login to continue."],["sign up","đăng ký","Sign up for a new account."],["message","tin nhắn","Send a message to your friend."],["image","hình ảnh","Upload an image."],["music","âm nhạc","I listen to music while coding."]];
+function say(t){try{speechSynthesis.cancel();var u=new SpeechSynthesisUtterance(t);u.lang="en-US";u.rate=.9;speechSynthesis.speak(u)}catch(e){}}
+function renderEn(){
+  var h="";EN.forEach(function(w,i){h+='<div class="w"><div><b>'+w[0]+'</b> — '+w[1]+'<small>'+w[2]+'</small></div><button class="ghost" data-i="'+i+'" aria-label="Nghe '+w[0]+'">🔊</button></div>'});
+  $("enlist").innerHTML=h;
+  $("enlist").querySelectorAll("button").forEach(function(b){b.onclick=function(){var w=EN[+b.dataset.i];say(w[0]+". "+w[2])}});
+}
+function quiz(){
+  var w=EN[Math.floor(Math.random()*EN.length)],o=[w];
+  while(o.length<4){var r=EN[Math.floor(Math.random()*EN.length)];if(o.indexOf(r)<0)o.push(r)}
+  o.sort(function(){return Math.random()-.5});
+  var h='<div class="card"><p>Từ <b>'+w[0]+'</b> nghĩa là gì?</p><div class="row">';
+  o.forEach(function(x,i){h+='<button class="ghost" data-i="'+i+'">'+x[1]+'</button>'});
+  h+='</div><p id="enr" class="note"></p></div>';
+  $("enq").innerHTML=h;say(w[0]);
+  $("enq").querySelectorAll("button").forEach(function(b){b.onclick=function(){var ok=o[+b.dataset.i]===w;$("enr").textContent=ok?"Chính xác! 🎉":"Chưa đúng, đáp án: "+w[1];$("enr").style.color=ok?"var(--ok)":"crimson"}});
+}
+$("enquiz").onclick=quiz;
+renderEn();
+document.querySelectorAll("#mus [data-src]").forEach(function(b){
+  b.onclick=function(){
+    var pl=b.closest(".card").querySelector(".pl");pl.innerHTML="";
+    var f=document.createElement("iframe");f.src=b.dataset.src;f.title="Trình phát nhạc";f.allow="autoplay; encrypted-media; picture-in-picture";f.allowFullscreen=true;f.style.marginTop="8px";
+    pl.appendChild(f);
+  };
+});
+["Alan Walker Fade NCS","Alan Walker Spectre NCS","Janji Heroes Tonight NCS","Cartoon On and On NCS","Elektronomia Sky High NCS","TheFatRat Unity","TheFatRat Monody","TheFatRat Fly Away","TheFatRat Xenogenesis","TheFatRat Windfall"].forEach(function(n){
+  var a=document.createElement("a");a.className="lnk";a.target="_blank";a.rel="noopener";a.textContent="🎵 "+n.replace(" NCS","");
+  a.href="https://www.youtube.com/results?search_query="+encodeURIComponent(n);$("songs").appendChild(a);
+});
 
 render();
 </script>
