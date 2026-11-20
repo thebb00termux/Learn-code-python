@@ -43,6 +43,7 @@ pre.out{margin:0;background:var(--code);color:var(--codetx);border-radius:10px;p
 <h1>Học lập trình từ con số 0</h1>
 <p class="sub">Chọn ngôn ngữ, đọc bài, sửa code rồi bấm Chạy để xem kết quả ngay.</p>
 <div class="langs" role="tablist" id="langs"></div>
+<div id="learn">
 <div class="lessons" id="lessons"></div>
 <section class="card">
   <h2 id="title"></h2>
@@ -57,6 +58,41 @@ pre.out{margin:0;background:var(--code);color:var(--codetx);border-radius:10px;p
   <button class="ghost" id="sol" hidden>Xem đáp án</button>
 </div>
 <div id="result"></div>
+</div>
+<section id="web" hidden>
+  <div class="card"><h2>Viết code Web</h2><p>Viết HTML, CSS và JavaScript ở 3 ô bên dưới rồi bấm Chạy để xem trang của bạn.</p></div>
+  <label class="label" for="wh">HTML</label>
+  <textarea id="wh" style="min-height:120px" spellcheck="false" autocapitalize="off">&lt;h1 id="tieude"&gt;Xin chào!&lt;/h1&gt;
+&lt;button id="nut"&gt;Bấm thử&lt;/button&gt;</textarea>
+  <label class="label" for="wc">CSS</label>
+  <textarea id="wc" style="min-height:120px" spellcheck="false" autocapitalize="off">body { font-family: sans-serif; text-align: center; }
+h1 { color: teal; }
+button { padding: 10px 20px; border-radius: 8px; }</textarea>
+  <label class="label" for="wj">JavaScript</label>
+  <textarea id="wj" style="min-height:120px" spellcheck="false" autocapitalize="off">document.getElementById("nut").onclick = function() {
+  document.getElementById("tieude").textContent = "Bạn vừa bấm nút!";
+  console.log("Đã bấm");
+};</textarea>
+  <div class="row"><button class="run" id="wrun">Chạy trang web</button></div>
+  <div class="label">Kết quả</div>
+  <iframe id="wf" sandbox="allow-scripts" title="Kết quả trang web"></iframe>
+  <div class="label">Console</div>
+  <pre class="out" id="wo"></pre>
+</section>
+<section id="pyp" hidden>
+  <div class="card"><h2>Viết code Python</h2><p>Viết Python ở ô dưới rồi bấm Chạy. Python chạy thật ngay trong trình duyệt. Lần đầu cần mạng và chờ vài giây để tải.</p></div>
+  <label class="label" for="pycode">Code Python</label>
+  <textarea id="pycode" spellcheck="false" autocapitalize="off">ten = "Nam"
+for i in range(1, 4):
+    print("Lần", i, "- xin chào", ten)
+
+tong = sum([1, 2, 3, 4, 5])
+print("Tổng =", tong)</textarea>
+  <div class="row"><button class="run" id="prun">Chạy Python</button></div>
+  <p class="note" id="ps" aria-live="polite"></p>
+  <div class="label">Kết quả</div>
+  <pre class="out" id="po"></pre>
+</section>
 </main>
 <script>
 var L={
@@ -101,6 +137,8 @@ L.bt={name:"Bài tập",lessons:[
 {lg:"JS",t:"Hàm bình phương",e:"Gợi ý: function ... return.",task:"Đề: viết hàm binhPhuong(x) trả về x * x, rồi in binhPhuong(5).",c:"// Viết hàm binhPhuong ở đây\n",has:[["function\\s+binhPhuong|binhPhuong\\s*=","Chưa khai báo hàm binhPhuong"]],out:"25",sol:"function binhPhuong(x) {\n  return x * x;\n}\nconsole.log(binhPhuong(5));"},
 {lg:"Python",t:"Xin chào Python",e:"Gợi ý: print(\"...\"). Bài này được kiểm tra bằng cách đọc code của bạn.",task:"Đề: in ra đúng câu Xin chào Python.",c:"# Viết code của bạn ở đây\n",has:[["print\\s*\\(.*Xin chào Python","Chưa có lệnh print in câu Xin chào Python"]],sol:"print(\"Xin chào Python\")"},
 {lg:"Python",t:"Vòng for với range",e:"Gợi ý: range(1, 4) cho ra 1, 2, 3. Nhớ thụt lề 4 dấu cách.",task:"Đề: dùng for ... in range(...) để in các số 1 đến 3, mỗi số một dòng.",c:"# Viết code của bạn ở đây\n",has:[["for\\s+\\w+\\s+in\\s+range\\s*\\(","Cần vòng for ... in range(...)"],["print\\s*\\(","Cần dùng print()"]],sol:"for i in range(1, 4):\n    print(i)"}]};
+L.web={name:"Viết code Web",free:1};
+L.pyp={name:"Viết code Python",free:1};
 var $=function(i){return document.getElementById(i)};
 var lang="html",idx=0,done={};
 try{done=JSON.parse(localStorage.getItem("hoc-done")||"{}")}catch(e){}
@@ -118,7 +156,7 @@ function renderLessons(){
   $("lessons").querySelectorAll("button").forEach(function(b){b.onclick=function(){idx=+b.dataset.i;render()}});
 }
 function render(){
-  renderTabs();renderLessons();
+  renderTabs();$("learn").hidden=!!L[lang].free;$("web").hidden=lang!=="web";$("pyp").hidden=lang!=="pyp";if(L[lang].free){return}renderLessons();
   var x=cur();
   $("title").textContent=(lang==="bt"?"Bài tập "+x.lg:L[lang].name)+": "+x.t;
   $("explain").innerHTML="<p>"+x.e+"</p>";
@@ -164,13 +202,51 @@ window.addEventListener("message",function(e){
   if(!e.data)return;
   var t=(e.data.k==="err"?"Lỗi: ":"")+e.data.v;
   if(window.__col){window.__col.push(t);return}
-  var o=$("o");if(o)o.textContent+=t+"\n";
+  var o=lang==="web"?$("wo"):$("o");if(o)o.textContent+=t+"\n";
 });
 $("run").onclick=run;
 $("sol").onclick=function(){$("code").value=cur().sol};
 $("reset").onclick=function(){$("code").value=cur().c;$("result").innerHTML=""};
 $("code").addEventListener("keydown",function(e){
   if(e.key==="Tab"){e.preventDefault();var s=this.selectionStart;this.value=this.value.slice(0,s)+"  "+this.value.slice(this.selectionEnd);this.selectionStart=this.selectionEnd=s+2}
+});
+var HOOK='var log=function(){parent.postMessage({k:"log",v:Array.prototype.slice.call(arguments).join(" ")},"*")};console.log=log;window.onerror=function(m){parent.postMessage({k:"err",v:String(m)},"*")};';
+function runWeb(){
+  var h=$("wh").value,c=$("wc").value,j=$("wj").value.replace(/<\/script/gi,"<\\/script");
+  $("wo").textContent="";
+  $("wf").srcdoc='<!DOCTYPE html><html><head><meta charset="utf-8"><style>'+c+'</style><script>'+HOOK+'<\/script></head><body>'+h+'<script>try{'+j+'\n}catch(e){console.log("Lỗi: "+e)}<\/script></body></html>';
+}
+$("wrun").onclick=runWeb;
+var pyP=null;
+function loadPy(){
+  if(pyP)return pyP;
+  pyP=new Promise(function(res,rej){
+    var sc=document.createElement("script");
+    sc.src="https://cdn.jsdelivr.net/pyodide/v0.26.4/full/pyodide.js";
+    sc.onload=function(){loadPyodide().then(res,rej)};
+    sc.onerror=function(){rej(new Error("Không tải được Python. Kiểm tra mạng rồi thử lại."))};
+    document.head.appendChild(sc);
+  });
+  pyP.catch(function(){pyP=null});
+  return pyP;
+}
+function runPy(){
+  var out=$("po"),st=$("ps");
+  out.textContent="";st.textContent="Đang tải Python (lần đầu mất vài giây)...";
+  loadPy().then(function(py){
+    st.textContent="Đang chạy...";
+    py.setStdout({batched:function(t){out.textContent+=t+"\n"}});
+    py.setStderr({batched:function(t){out.textContent+=t+"\n"}});
+    return py.runPythonAsync($("pycode").value).then(
+      function(){st.textContent="Xong."},
+      function(e){out.textContent+=String(e.message||e);st.textContent="Code có lỗi, xem phần kết quả."});
+  }).catch(function(e){st.textContent=String(e.message||e)});
+}
+$("prun").onclick=runPy;
+["wh","wc","wj","pycode"].forEach(function(id){
+  $(id).addEventListener("keydown",function(e){
+    if(e.key==="Tab"){e.preventDefault();var sp=id==="pycode"?"    ":"  ",a=this.selectionStart;this.value=this.value.slice(0,a)+sp+this.value.slice(this.selectionEnd);this.selectionStart=this.selectionEnd=a+sp.length}
+  });
 });
 render();
 </script>
