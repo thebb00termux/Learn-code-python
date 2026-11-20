@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Học lập trình: HTML, CSS, JavaScript, Python</title>
+<style>
+:root{--bg:#f3f6f4;--sf:#fff;--tx:#14231c;--mu:#58685f;--bd:#d3ddd7;--ac:#0f766e;--acx:#fff;--code:#0e1a15;--codetx:#d9efe3;--ok:#15803d;
+box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#0d1612;--sf:#15221c;--tx:#e4f1ea;--mu:#93a99d;--bd:#26372f;--ac:#2dd4bf;--acx:#06201b;--code:#070e0b;--codetx:#d9efe3;--ok:#4ade80}}
+:root[data-theme="dark"]{--bg:#0d1612;--sf:#15221c;--tx:#e4f1ea;--mu:#93a99d;--bd:#26372f;--ac:#2dd4bf;--acx:#06201b;--code:#070e0b;--codetx:#d9efe3;--ok:#4ade80}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--tx);font:16px/1.6 "Segoe UI",system-ui,-apple-system,Roboto,sans-serif}
+main{max-width:860px;margin:0 auto;padding:16px}
+h1{font-size:1.5rem;margin:8px 0 2px;letter-spacing:-.01em}
+.sub{color:var(--mu);margin:0 0 14px}
+.langs{display:flex;gap:8px;overflow-x:auto;padding-bottom:4px}
+.langs button,.lessons button{font:inherit;cursor:pointer;border:1px solid var(--bd);background:var(--sf);color:var(--tx);border-radius:10px;padding:8px 14px;white-space:nowrap}
+.langs button{font-weight:600}
+.langs button[aria-selected=true]{background:var(--ac);color:var(--acx);border-color:var(--ac)}
+.lessons{display:flex;gap:6px;overflow-x:auto;margin:10px 0;padding-bottom:4px}
+.lessons button{font-size:.9rem;padding:6px 12px;border-radius:999px;color:var(--mu)}
+.lessons button[aria-current=true]{border-color:var(--ac);color:var(--tx);font-weight:600}
+.lessons button.done::after{content:" ✓";color:var(--ok)}
+button:focus-visible,textarea:focus-visible{outline:3px solid var(--ac);outline-offset:2px}
+.card{background:var(--sf);border:1px solid var(--bd);border-radius:12px;padding:14px 16px;margin-bottom:12px}
+.card h2{margin:0 0 6px;font-size:1.2rem}
+.card p{margin:6px 0}
+.task{border-left:4px solid var(--ac);padding-left:12px;margin-top:10px;color:var(--tx)}
+textarea{width:100%;min-height:210px;background:var(--code);color:var(--codetx);border:1px solid var(--bd);border-radius:10px;padding:12px;font:14px/1.5 ui-monospace,Menlo,Consolas,monospace;resize:vertical;tab-size:2}
+.row{display:flex;gap:8px;margin:8px 0;flex-wrap:wrap}
+.run{background:var(--ac);color:var(--acx);border:0;border-radius:10px;padding:10px 18px;font:inherit;font-weight:700;cursor:pointer}
+.ghost{background:transparent;color:var(--tx);border:1px solid var(--bd);border-radius:10px;padding:10px 14px;font:inherit;cursor:pointer}
+iframe{width:100%;height:220px;border:1px solid var(--bd);border-radius:10px;background:#fff}
+pre.out{margin:0;background:var(--code);color:var(--codetx);border-radius:10px;padding:12px;min-height:60px;overflow-x:auto;font:14px/1.5 ui-monospace,Menlo,Consolas,monospace;white-space:pre-wrap}
+.label{font-size:.85rem;color:var(--mu);margin:10px 0 4px}
+.note{font-size:.9rem;color:var(--mu)}
+</style>
+</head>
+<body>
+<main>
+<h1>Học lập trình từ con số 0</h1>
+<p class="sub">Chọn ngôn ngữ, đọc bài, sửa code rồi bấm Chạy để xem kết quả ngay.</p>
+<div class="langs" role="tablist" id="langs"></div>
+<div class="lessons" id="lessons"></div>
+<section class="card">
+  <h2 id="title"></h2>
+  <div id="explain"></div>
+  <p class="task" id="task"></p>
+</section>
+<label class="label" for="code">Code (sửa thoải mái)</label>
+<textarea id="code" spellcheck="false" autocapitalize="off" autocomplete="off"></textarea>
+<div class="row">
+  <button class="run" id="run">Chạy code</button>
+  <button class="ghost" id="reset">Về code mẫu</button>
+  <button class="ghost" id="sol" hidden>Xem đáp án</button>
+</div>
+<div id="result"></div>
+</main>
+<script>
+var L={
+html:{name:"HTML",lessons:[
+{t:"Tiêu đề và đoạn văn",e:"HTML là khung xương của trang web. Mỗi phần tử gồm thẻ mở và thẻ đóng, ví dụ <b>&lt;h1&gt;...&lt;/h1&gt;</b> cho tiêu đề lớn và <b>&lt;p&gt;...&lt;/p&gt;</b> cho đoạn văn.",task:"Thử thách: đổi nội dung tiêu đề thành tên bạn và thêm một đoạn <p> nữa.",c:"<h1>Xin chào!</h1>\n<p>Đây là trang web đầu tiên của mình.</p>"},
+{t:"Danh sách và liên kết",e:"<b>&lt;ul&gt;</b> tạo danh sách chấm, <b>&lt;li&gt;</b> là từng mục. <b>&lt;a href=\"...\"&gt;</b> tạo liên kết.",task:"Thử thách: thêm 2 món bạn thích vào danh sách.",c:"<h2>Món ngon</h2>\n<ul>\n  <li>Phở</li>\n  <li>Bánh mì</li>\n</ul>\n<a href=\"https://vi.wikipedia.org\">Mở Wikipedia</a>"},
+{t:"Form nhập liệu",e:"Dùng <b>&lt;input&gt;</b> để người dùng gõ chữ và <b>&lt;button&gt;</b> để bấm. Thuộc tính <b>placeholder</b> là gợi ý mờ trong ô.",task:"Thử thách: thêm ô nhập tuổi với <input type=\"number\">.",c:"<label>Tên bạn:</label>\n<input type=\"text\" placeholder=\"Nhập tên...\">\n<br><br>\n<button>Gửi</button>"},
+{t:"Bảng dữ liệu",e:"<b>&lt;table&gt;</b> tạo bảng, <b>&lt;tr&gt;</b> là một hàng, <b>&lt;th&gt;</b> là ô tiêu đề, <b>&lt;td&gt;</b> là ô dữ liệu.",task:"Thử thách: thêm một hàng mới cho bạn của bạn.",c:"<table border=\"1\" cellpadding=\"8\">\n  <tr><th>Tên</th><th>Điểm</th></tr>\n  <tr><td>An</td><td>9</td></tr>\n  <tr><td>Bình</td><td>8</td></tr>\n</table>"},
+{t:"Chọn, tick và nhiều dòng",e:"<b>&lt;select&gt;</b> tạo menu thả xuống, <b>type=\"checkbox\"</b> là ô tick, <b>&lt;textarea&gt;</b> là ô gõ nhiều dòng.",task:"Thử thách: thêm một lựa chọn \"Python\" vào menu.",c:"<select>\n  <option>HTML</option>\n  <option>CSS</option>\n  <option>JavaScript</option>\n</select>\n<br><br>\n<label><input type=\"checkbox\"> Mình đã hiểu bài</label>\n<br><br>\n<textarea rows=\"3\" placeholder=\"Ghi chú...\"></textarea>"},
+{t:"Nút bấm (button)",e:"<b>&lt;button&gt;</b> tạo nút. Thuộc tính <b>onclick</b> chứa lệnh JavaScript chạy khi bấm, còn <b>this</b> là chính cái nút đang bấm.",task:"Thử thách: đổi chữ \"Đã bấm!\" thành lời của bạn.",c:"<button onclick=\"this.textContent='Đã bấm!'\">Bấm vào mình</button>\n<button onclick=\"document.body.style.background='#fef3c7'\">Đổi màu nền</button>"},
+{t:"Ảnh và nhúng tài nguyên",e:"<b>&lt;img src&gt;</b> nhúng ảnh. Tương tự, <b>&lt;link href&gt;</b> nhúng file CSS và <b>&lt;script src&gt;</b> nhúng file JavaScript. Ảnh mẫu dưới đây được nhúng trực tiếp nên chạy không cần mạng.",task:"Thử thách: đổi width thành 200 và đổi nội dung alt.",c:"<img width=\"120\" alt=\"hình tròn xanh\"\n  src=\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ccircle cx='50' cy='50' r='45' fill='teal'/%3E%3C/svg%3E\">"}]},
+css:{name:"CSS",lessons:[
+{t:"Màu sắc và cỡ chữ",e:"CSS là lớp trang điểm cho HTML. Cú pháp: <b>bộ-chọn { thuộc-tính: giá-trị; }</b>. Ví dụ đổi màu và cỡ chữ.",task:"Thử thách: đổi màu h1 thành tomato và cỡ chữ thành 48px.",c:"<style>\n  h1 { color: teal; font-size: 32px; }\n  p { color: gray; }\n</style>\n<h1>Chào CSS</h1>\n<p>Chữ này màu xám.</p>"},
+{t:"Hộp (box model)",e:"Mọi phần tử là một cái hộp: <b>padding</b> là đệm bên trong, <b>border</b> là viền, <b>margin</b> là khoảng cách bên ngoài.",task:"Thử thách: tăng padding lên 40px và bo góc 30px.",c:"<style>\n  .hop {\n    background: #fde68a;\n    padding: 20px;\n    border: 3px solid #b45309;\n    border-radius: 12px;\n    margin: 10px;\n  }\n</style>\n<div class=\"hop\">Mình là một chiếc hộp</div>"},
+{t:"Flexbox bố cục",e:"<b>display: flex</b> xếp các phần tử con thành hàng. <b>justify-content</b> căn theo chiều ngang, <b>gap</b> là khoảng cách giữa chúng.",task:"Thử thách: đổi justify-content thành space-between.",c:"<style>\n  .hang { display: flex; gap: 10px; justify-content: center; }\n  .o { background: #38bdf8; padding: 20px; border-radius: 8px; }\n</style>\n<div class=\"hang\">\n  <div class=\"o\">1</div><div class=\"o\">2</div><div class=\"o\">3</div>\n</div>"},
+{t:"Nút có hiệu ứng hover",e:"<b>:hover</b> áp dụng style khi rê chuột lên, <b>transition</b> làm thay đổi mượt thay vì giật.",task:"Thử thách: rê chuột vào nút, rồi đổi màu hover thành màu bạn thích.",c:"<style>\n  .nut {\n    background: #0f766e; color: white;\n    border: 0; padding: 12px 24px;\n    border-radius: 8px; font-size: 16px;\n    transition: all .3s;\n  }\n  .nut:hover { background: #f59e0b; transform: scale(1.1); }\n</style>\n<button class=\"nut\">Rê chuột vào mình</button>"},
+{t:"Grid lưới 3 cột",e:"<b>display: grid</b> chia trang thành lưới. <b>grid-template-columns: repeat(3, 1fr)</b> tạo 3 cột bằng nhau.",task:"Thử thách: đổi thành repeat(2, 1fr) và xem lưới đổi ra sao.",c:"<style>\n  .luoi { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }\n  .luoi div { background: #a78bfa; color: white; padding: 20px; text-align: center; border-radius: 6px; }\n</style>\n<div class=\"luoi\">\n  <div>1</div><div>2</div><div>3</div>\n  <div>4</div><div>5</div><div>6</div>\n</div>"},
+{t:"Animation chuyển động",e:"<b>@keyframes</b> mô tả các bước của chuyển động, <b>animation</b> gắn nó vào phần tử cùng thời gian và số lần lặp.",task:"Thử thách: đổi 1s thành 3s cho chậm lại.",c:"<style>\n  @keyframes nay { 0%,100% { transform: translateY(0); } 50% { transform: translateY(-30px); } }\n  .bong { width: 50px; height: 50px; margin-top: 40px; border-radius: 50%; background: tomato; animation: nay 1s infinite; }\n</style>\n<div class=\"bong\"></div>"}]},
+js:{name:"JavaScript",lessons:[
+{t:"Biến và console.log",e:"Biến lưu dữ liệu: <b>let</b> cho giá trị đổi được, <b>const</b> cho giá trị cố định. <b>console.log()</b> in kết quả ra màn hình.",task:"Thử thách: tạo biến tuoi và in ra câu \"Mình 20 tuổi\".",c:"let ten = \"Nam\";\nconst nam = 2026;\nconsole.log(\"Xin chào \" + ten);\nconsole.log(\"Năm nay là\", nam);"},
+{t:"Điều kiện if/else",e:"Máy tính chọn nhánh chạy dựa trên điều kiện đúng hay sai: <b>if (điều kiện) { ... } else { ... }</b>.",task:"Thử thách: đổi diem thành 5 và xem kết quả đổi thế nào.",c:"let diem = 8;\nif (diem >= 5) {\n  console.log(\"Đậu rồi!\");\n} else {\n  console.log(\"Cần ôn thêm\");\n}"},
+{t:"Vòng lặp và hàm",e:"<b>for</b> lặp lại việc nhiều lần. <b>function</b> gói một đoạn code để dùng lại.",task:"Thử thách: viết hàm nhanDoi(x) trả về x * 2 và gọi thử.",c:"function chao(ten) {\n  return \"Chào \" + ten + \"!\";\n}\nfor (let i = 1; i <= 3; i++) {\n  console.log(i + \". \" + chao(\"bạn\"));\n}"},
+{t:"Mảng và map",e:"<b>Mảng</b> là danh sách trong [ ]. <b>.map()</b> biến đổi từng phần tử, <b>.filter()</b> lọc theo điều kiện.",task:"Thử thách: lọc ra các số lớn hơn 3.",c:"const so = [1, 2, 3, 4, 5];\nconst gapDoi = so.map(function(x) { return x * 2; });\nconst chan = so.filter(function(x) { return x % 2 === 0; });\nconsole.log(\"Gấp đôi:\", gapDoi);\nconsole.log(\"Số chẵn:\", chan);"},
+{t:"Đối tượng (object)",e:"<b>Object</b> gom nhiều thông tin liên quan vào một biến, mỗi thông tin có tên riêng (key) và giá trị.",task:"Thử thách: thêm thuộc tính quequan rồi in ra.",c:"const hocSinh = {\n  ten: \"Lan\",\n  tuoi: 16,\n  monGioi: [\"Toán\", \"Tin\"]\n};\nconsole.log(hocSinh.ten + \" \" + hocSinh.tuoi + \" tuổi\");\nconsole.log(\"Giỏi môn:\", hocSinh.monGioi.join(\", \"));"},
+{t:"Nút bấm và DOM",e:"<b>document.getElementById</b> lấy phần tử trên trang, <b>addEventListener</b> lắng nghe sự kiện bấm. Khung kết quả có sẵn một thẻ id <b>app</b> để bạn vẽ vào.",task:"Thử thách: cho mỗi lần bấm tăng thêm 2.",c:"const app = document.getElementById(\"app\");\nlet dem = 0;\nconst nut = document.createElement(\"button\");\nnut.textContent = \"Bấm: 0\";\nnut.addEventListener(\"click\", function() {\n  dem++;\n  nut.textContent = \"Bấm: \" + dem;\n});\napp.appendChild(nut);"},
+{t:"Thời gian: đồng hồ",e:"<b>new Date()</b> lấy thời gian hiện tại. <b>setInterval(hàm, ms)</b> chạy hàm lặp lại sau mỗi khoảng mili giây (1000 = 1 giây).",task:"Thử thách: hiện thêm ngày bằng toLocaleDateString(\"vi-VN\").",c:"const app = document.getElementById(\"app\");\nfunction capNhat() {\n  app.textContent = new Date().toLocaleTimeString(\"vi-VN\");\n}\ncapNhat();\nsetInterval(capNhat, 1000);"},
+{t:"Hẹn giờ setTimeout",e:"<b>setTimeout(hàm, ms)</b> chạy hàm đúng một lần sau khi chờ. Dòng kết quả sẽ hiện dần ra.",task:"Thử thách: đổi 2000 thành 500 rồi chạy lại.",c:"console.log(\"Bắt đầu\");\nsetTimeout(function() {\n  console.log(\"Sau 2 giây mới hiện dòng này\");\n}, 2000);\nconsole.log(\"Dòng này hiện trước\");"}]},
+py:{name:"Python",lessons:[
+{t:"print và biến",e:"Python rất gọn: không cần dấu chấm phẩy. <b>print()</b> in ra màn hình, biến tạo bằng dấu <b>=</b>.",task:"Thử thách: tạo biến ten và in lời chào. Chép code vào máy bạn (cài Python từ python.org) để chạy thật.",c:"ten = \"Nam\"\ntuoi = 20\nprint(\"Xin chào\", ten)\nprint(\"Năm sau\", tuoi + 1, \"tuổi\")",o:"Xin chào Nam\nNăm sau 21 tuổi"},
+{t:"Điều kiện và thụt lề",e:"Python dùng <b>thụt lề</b> (4 dấu cách) thay cho dấu ngoặc nhọn. Sau <b>if</b>, <b>else</b>, <b>for</b> phải có dấu hai chấm.",task:"Thử thách: đổi nhiet_do thành 20 rồi đoán kết quả trước khi chạy.",c:"nhiet_do = 35\nif nhiet_do > 30:\n    print(\"Trời nóng, uống nước nhé\")\nelse:\n    print(\"Thời tiết dễ chịu\")",o:"Trời nóng, uống nước nhé"},
+{t:"List và vòng lặp for",e:"<b>List</b> là danh sách trong dấu [ ]. Vòng <b>for</b> duyệt từng phần tử, <b>len()</b> đếm số phần tử.",task:"Thử thách: thêm một món vào list và đoán số lượng mới.",c:"mon = [\"phở\", \"bún\", \"cơm\"]\nfor m in mon:\n    print(\"Hôm nay ăn\", m)\nprint(\"Tổng:\", len(mon), \"món\")",o:"Hôm nay ăn phở\nHôm nay ăn bún\nHôm nay ăn cơm\nTổng: 3 món"},
+{t:"Dictionary và hàm",e:"<b>Dictionary</b> lưu cặp key: value trong dấu { }. Hàm tạo bằng <b>def</b>, trả kết quả bằng <b>return</b>.",task:"Thử thách: thêm một bạn mới vào dictionary rồi đoán kết quả.",c:"diem = {\"An\": 9, \"Bình\": 7}\n\ndef xep_loai(d):\n    return \"Giỏi\" if d >= 8 else \"Khá\"\n\nfor ten, d in diem.items():\n    print(ten, d, xep_loai(d))",o:"An 9 Giỏi\nBình 7 Khá"},
+{t:"import: thư viện math",e:"<b>import</b> gọi thêm bộ công cụ có sẵn của Python. <b>math</b> có căn bậc hai, số pi, làm tròn...",task:"Thử thách: đoán kết quả của math.sqrt(144) trước khi chạy ở máy bạn.",c:"import math\n\nprint(math.sqrt(81))\nprint(round(math.pi, 2))\nprint(math.ceil(4.2))",o:"9.0\n3.14\n5"},
+{t:"import: thời gian datetime",e:"<b>datetime</b> làm việc với ngày giờ, <b>strftime</b> định dạng thành chữ. <b>from ... import ...</b> chỉ lấy đúng thứ cần dùng.",task:"Thử thách: đổi ngày trong date(...) thành sinh nhật của bạn.",c:"from datetime import date\n\nngay = date(2026, 11, 20)\nprint(ngay.strftime(\"%d/%m/%Y\"))\nprint(ngay.year + 1)\n# date.today() cho ra ngày hôm nay",o:"20/11/2026\n2027"}]}
+};
+L.bt={name:"Bài tập",lessons:[
+{lg:"HTML",t:"Tiêu đề và nút",e:"Gợi ý: dùng thẻ h1 và button.",task:"Đề: tạo một tiêu đề h1 và một nút button có chữ bất kỳ.",c:"<p>Viết code của bạn ở đây</p>",has:[["<h1[\\s>]","Thiếu thẻ &lt;h1&gt;"],["<button[\\s>]","Thiếu thẻ &lt;button&gt;"]],sol:"<h1>Xin chào</h1>\n<button>Bấm</button>"},
+{lg:"HTML",t:"Danh sách 3 món",e:"Gợi ý: ul chứa các li.",task:"Đề: tạo danh sách chấm có ít nhất 3 món ăn.",c:"<ul>\n  <li>Món 1</li>\n</ul>",has:[["<ul[\\s>]","Thiếu thẻ &lt;ul&gt;"],["(<li[\\s>][\\s\\S]*){3}","Cần ít nhất 3 thẻ &lt;li&gt;"]],sol:"<ul>\n  <li>Phở</li>\n  <li>Bún</li>\n  <li>Cơm</li>\n</ul>"},
+{lg:"CSS",t:"Tiêu đề màu đỏ",e:"Gợi ý: thuộc tính color.",task:"Đề: làm cho h1 có chữ màu đỏ (red).",c:"<style>\n  h1 {  }\n</style>\n<h1>Tiêu đề</h1>",has:[["h1\\s*\\{[^}]*(^|[\\s;{])color\\s*:\\s*(red|#f00|#ff0000)","Chưa đặt color: red cho h1"]],sol:"<style>\n  h1 { color: red; }\n</style>\n<h1>Tiêu đề</h1>"},
+{lg:"CSS",t:"Xếp hàng bằng flex",e:"Gợi ý: display và gap.",task:"Đề: dùng flexbox để hai ô A và B nằm cạnh nhau.",c:"<style>\n  .hang {  }\n</style>\n<div class=\"hang\"><div>A</div><div>B</div></div>",has:[["display\\s*:\\s*flex","Chưa dùng display: flex"]],sol:"<style>\n  .hang { display: flex; gap: 10px; }\n</style>\n<div class=\"hang\"><div>A</div><div>B</div></div>"},
+{lg:"JS",t:"In số từ 1 đến 5",e:"Gợi ý: vòng for với console.log.",task:"Đề: in ra 1, 2, 3, 4, 5 mỗi số một dòng.",c:"// Viết code của bạn ở đây\n",has:[["for|while","Hãy dùng vòng lặp"]],out:"1\n2\n3\n4\n5",sol:"for (let i = 1; i <= 5; i++) {\n  console.log(i);\n}"},
+{lg:"JS",t:"Hàm bình phương",e:"Gợi ý: function ... return.",task:"Đề: viết hàm binhPhuong(x) trả về x * x, rồi in binhPhuong(5).",c:"// Viết hàm binhPhuong ở đây\n",has:[["function\\s+binhPhuong|binhPhuong\\s*=","Chưa khai báo hàm binhPhuong"]],out:"25",sol:"function binhPhuong(x) {\n  return x * x;\n}\nconsole.log(binhPhuong(5));"},
+{lg:"Python",t:"Xin chào Python",e:"Gợi ý: print(\"...\"). Bài này được kiểm tra bằng cách đọc code của bạn.",task:"Đề: in ra đúng câu Xin chào Python.",c:"# Viết code của bạn ở đây\n",has:[["print\\s*\\(.*Xin chào Python","Chưa có lệnh print in câu Xin chào Python"]],sol:"print(\"Xin chào Python\")"},
+{lg:"Python",t:"Vòng for với range",e:"Gợi ý: range(1, 4) cho ra 1, 2, 3. Nhớ thụt lề 4 dấu cách.",task:"Đề: dùng for ... in range(...) để in các số 1 đến 3, mỗi số một dòng.",c:"# Viết code của bạn ở đây\n",has:[["for\\s+\\w+\\s+in\\s+range\\s*\\(","Cần vòng for ... in range(...)"],["print\\s*\\(","Cần dùng print()"]],sol:"for i in range(1, 4):\n    print(i)"}]};
+var $=function(i){return document.getElementById(i)};
+var lang="html",idx=0,done={};
+try{done=JSON.parse(localStorage.getItem("hoc-done")||"{}")}catch(e){}
+function save(){try{localStorage.setItem("hoc-done",JSON.stringify(done))}catch(e){}}
+function cur(){return L[lang].lessons[idx]}
+function renderTabs(){
+  var h="";for(var k in L){h+='<button role="tab" data-l="'+k+'" aria-selected="'+(k===lang)+'">'+L[k].name+'</button>'}
+  $("langs").innerHTML=h;
+  $("langs").querySelectorAll("button").forEach(function(b){b.onclick=function(){lang=b.dataset.l;idx=0;render()}});
+}
+function renderLessons(){
+  var h="";L[lang].lessons.forEach(function(x,i){
+    h+='<button data-i="'+i+'" aria-current="'+(i===idx)+'" class="'+(done[lang+i]?"done":"")+'">'+(i+1)+". "+(x.lg?x.lg+": ":"")+x.t+'</button>'});
+  $("lessons").innerHTML=h;
+  $("lessons").querySelectorAll("button").forEach(function(b){b.onclick=function(){idx=+b.dataset.i;render()}});
+}
+function render(){
+  renderTabs();renderLessons();
+  var x=cur();
+  $("title").textContent=(lang==="bt"?"Bài tập "+x.lg:L[lang].name)+": "+x.t;
+  $("explain").innerHTML="<p>"+x.e+"</p>";
+  $("task").textContent=x.task;
+  $("code").value=x.c;
+  $("result").innerHTML="";
+  $("run").textContent=lang==="bt"?"Kiểm tra bài":lang==="py"?"Xem kết quả mẫu":"Chạy code";$("sol").hidden=lang!=="bt";
+}
+function esc(s){return String(s).replace(/[&<>]/g,function(c){return{"&":"&amp;","<":"&lt;",">":"&gt;"}[c]})}
+function jsDoc(code){return '<body style="font-family:sans-serif;margin:8px"><div id="app"></div><script>var log=function(){parent.postMessage({k:"log",v:Array.prototype.slice.call(arguments).join(" ")},"*")};console.log=log;window.onerror=function(m){parent.postMessage({k:"err",v:String(m)},"*")};try{'+code.replace(/<\/script>/gi,"<\\/script>")+'\n}catch(e){parent.postMessage({k:"err",v:String(e)},"*")}<\/script>'}
+function verdict(m){
+  $("result").innerHTML='<div class="card">'+(m.length?'<b>Chưa đúng, thử lại nhé:</b><ul><li>'+m.join('</li><li>')+'</li></ul>':'<b style="color:var(--ok)">Chính xác! Làm tốt lắm 🎉</b>')+'</div>';
+  if(!m.length){done[lang+idx]=1;save();renderLessons()}
+}
+function grade(x,code){
+  var m=[];(x.has||[]).forEach(function(p){if(!new RegExp(p[0],"i").test(code))m.push(p[1])});
+  if(x.out!==undefined&&!m.length){
+    var f=document.createElement("iframe");f.sandbox="allow-scripts";f.style.display="none";document.body.appendChild(f);
+    window.__col=[];f.srcdoc=jsDoc(code);
+    setTimeout(function(){
+      var got=window.__col.join("\n").trim();window.__col=null;f.remove();
+      if(got!==x.out)m.push("Kết quả in ra chưa khớp. Cần: "+esc(x.out.replace(/\n/g," | "))+" — bạn in: "+(esc(got.replace(/\n/g," | "))||"(không có gì)"));
+      verdict(m);
+    },600);
+  }else verdict(m);
+}
+function run(){
+  var x=cur(),code=$("code").value,r=$("result");
+  if(lang==="bt"){grade(x,code);return}
+  if(lang==="py"){
+    r.innerHTML='<div class="label">Kết quả khi chạy bản mẫu</div><pre class="out"></pre><p class="note">Trình duyệt không chạy Python trực tiếp, nên đây là kết quả của code mẫu. Hãy chép code sang máy bạn hoặc một trình chạy online để thử bản bạn sửa.</p>';
+    r.querySelector("pre").textContent=x.o;
+  }else if(lang==="js"){
+    r.innerHTML='<div class="label">Khung hiển thị</div><iframe sandbox="allow-scripts" title="Kết quả" style="height:130px"></iframe><div class="label">Console</div><pre class="out" id="o"></pre>';
+    r.querySelector("iframe").srcdoc=jsDoc(code);
+  }else{
+    r.innerHTML='<div class="label">Kết quả</div><iframe sandbox="allow-scripts" title="Kết quả"></iframe>';
+    r.querySelector("iframe").srcdoc='<body style="font-family:sans-serif;margin:12px">'+code;
+  }
+  done[lang+idx]=1;save();renderLessons();
+}
+window.addEventListener("message",function(e){
+  if(!e.data)return;
+  var t=(e.data.k==="err"?"Lỗi: ":"")+e.data.v;
+  if(window.__col){window.__col.push(t);return}
+  var o=$("o");if(o)o.textContent+=t+"\n";
+});
+$("run").onclick=run;
+$("sol").onclick=function(){$("code").value=cur().sol};
+$("reset").onclick=function(){$("code").value=cur().c;$("result").innerHTML=""};
+$("code").addEventListener("keydown",function(e){
+  if(e.key==="Tab"){e.preventDefault();var s=this.selectionStart;this.value=this.value.slice(0,s)+"  "+this.value.slice(this.selectionEnd);this.selectionStart=this.selectionEnd=s+2}
+});
+render();
+</script>
+</body>
+</html>
