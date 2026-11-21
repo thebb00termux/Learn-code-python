@@ -59,6 +59,7 @@ pre.out{margin:0;background:var(--code);color:var(--codetx);border-radius:10px;p
 .w div{flex:1}
 .w small{display:block;color:var(--mu)}
 .mi{width:100%;padding:10px;margin:6px 0;border:1px solid var(--bd);border-radius:10px;background:var(--bg);color:var(--tx);font:inherit;box-sizing:border-box}
+.w img{width:64px;height:48px;object-fit:cover;border-radius:6px}
 .lnk{display:inline-block;text-decoration:none;color:var(--tx);border:1px solid var(--bd);border-radius:10px;padding:10px 14px;margin:4px 4px 0 0;background:var(--sf)}
 </style>
 </head>
@@ -156,6 +157,10 @@ button { padding: 10px 20px; border-radius: 8px; }</textarea>
     <div id="mplay"></div>
     <input id="msearch" class="mi" placeholder="🔍 Tìm trong thư viện..." autocomplete="off">
     <div id="mlist"></div></div>
+  <div class="card"><b>Tìm nhạc trên YouTube</b>
+    <div class="row"><input id="yq" class="mi" style="flex:1;width:auto;margin:0" placeholder="Gõ tên bài, ví dụ: NCS, TheFatRat Unity..." autocomplete="off"><button class="run" id="ysearch">Tìm</button></div>
+    <p class="note" id="yst" aria-live="polite"></p>
+    <div id="ylist"></div></div>
   <div class="card"><b>Tìm bài cụ thể trên YouTube</b><div id="songs"></div></div>
 </section>
 <section id="pyp" hidden>
@@ -227,6 +232,8 @@ service cloud.firestore {
 </div>
 <script>
 /* ===== CẤU HÌNH CHAT: dán firebaseConfig của bạn vào đây ===== */
+/* Dán YouTube API key vào đây để tìm nhạc trên YouTube */
+var YT_API_KEY="AIzaSyAdWZVXyFffpFCazajU9lb7W5Q_YVKJ9vs";
 var RO={py:1,cpp:1,c:1,cs:1,lua:1};
 var FIREBASE_CONFIG={apiKey:"AIzaSyBMsTdcbJqxALV_iNsR_1Qwipt2fOIwQMo",authDomain:"learn-code-python.firebaseapp.com",projectId:"learn-code-python",storageBucket:"learn-code-python.firebasestorage.app",messagingSenderId:"197145139414",appId:"1:197145139414:web:9699730d5e165c88ed9177"};
 var L={
@@ -627,6 +634,38 @@ SEED.forEach(function(it){
   }).catch(function(){});
 });
 mrender();
+
+function decHtml(t){var x=document.createElement("textarea");x.innerHTML=t;return x.value}
+function ytSearch(){
+  var q=$("yq").value.trim();if(!q)return;
+  if(!YT_API_KEY){$("yst").textContent="Chưa có API key. Hãy dán key vào biến YT_API_KEY ở đầu phần script của file.";return}
+  $("yst").textContent="Đang tìm...";$("ylist").innerHTML="";
+  fetch("https://www.googleapis.com/youtube/v3/search?part=snippet&type=video&videoEmbeddable=true&maxResults=10&q="+encodeURIComponent(q)+"&key="+encodeURIComponent(YT_API_KEY))
+  .then(function(r){return r.json().then(function(j){return{ok:r.ok,j:j}})})
+  .then(function(x){
+    if(!x.ok){$("yst").textContent="Lỗi: "+((x.j.error&&x.j.error.message)||"không rõ");return}
+    var items=(x.j.items||[]).filter(function(v){return v.id&&/^[\w-]{11}$/.test(v.id.videoId||"")});
+    if(!items.length){$("yst").textContent="Không tìm thấy bài nào.";return}
+    $("yst").textContent="";
+    items.forEach(function(v){
+      var it={id:v.id.videoId,title:decHtml(v.snippet.title),by:decHtml(v.snippet.channelTitle)};
+      var r=document.createElement("div");r.className="w";
+      var th=v.snippet.thumbnails&&v.snippet.thumbnails.default;
+      if(th&&/^https:\/\/i\.ytimg\.com\//.test(th.url)){var im=document.createElement("img");im.src=th.url;im.alt="";r.appendChild(im)}
+      var d=document.createElement("div"),b=document.createElement("b"),sm=document.createElement("small");
+      b.textContent=it.title;sm.textContent=it.by;d.appendChild(b);d.appendChild(sm);
+      var pb=document.createElement("button");pb.className="run";pb.textContent="▶";pb.setAttribute("aria-label","Phát "+it.title);pb.onclick=function(){mplay(it)};
+      var ab=document.createElement("button");ab.className="ghost";ab.textContent="＋";ab.setAttribute("aria-label","Thêm vào thư viện");
+      ab.onclick=function(){
+        if(!mlib.concat(SEED).some(function(o){return o.id===it.id})){mlib.push(it);msave();mrender()}
+        ab.textContent="✓";
+      };
+      r.appendChild(d);r.appendChild(pb);r.appendChild(ab);$("ylist").appendChild(r);
+    });
+  }).catch(function(){$("yst").textContent="Không kết nối được. Kiểm tra mạng."});
+}
+$("ysearch").onclick=ytSearch;
+$("yq").addEventListener("keydown",function(e){if(e.key==="Enter")ytSearch()});
 
 render();
 </script>
